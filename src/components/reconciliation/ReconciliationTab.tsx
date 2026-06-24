@@ -10,18 +10,11 @@ import {
   type ReconciliationMeta,
 } from '@/data/mock-reconciliation';
 import { ReconciliationOverviewCards } from '@/components/reconciliation/ReconciliationOverviewCards';
-import {
-  ReconciliationWizard,
-  StepFooter,
-  type Batch,
-} from '@/components/reconciliation/ReconciliationWizard';
+import { type Batch, type StepFooterConfig } from '@/components/reconciliation/ReconciliationWizard';
+import { ReconcileWizardModal } from '@/components/reconciliation/ReconcileWizardModal';
 import { ReconciliationDashboard } from '@/components/reconciliation/ReconciliationDashboard';
 
-const WuButton       = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),       { ssr: false });
-const WuModal        = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModal })),        { ssr: false });
-const WuModalHeader  = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalHeader })),  { ssr: false });
-const WuModalContent = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalContent })), { ssr: false });
-const WuModalFooter  = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalFooter })),  { ssr: false });
+const WuButton = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })), { ssr: false });
 
 /* ── Page header — mirrors ProjectDashboard header style ── */
 function ReconPageHeader({ meta, projectName }: { meta: ReconciliationMeta; projectName: string }) {
@@ -73,7 +66,7 @@ function EmptyReconState({ onStart }: { onStart: () => void }) {
   const rules = [
     'One submission per project',
     'Maximum 20% of completed responses',
-    'Submit within 30 days of project close',
+    'Submit within 30 days of project launch date',
     'Automatic wallet credit after approval',
   ];
 
@@ -132,6 +125,13 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
 
   function handleSubmit() {
     const idsSubmitted = batches.reduce((s, b) => s + b.valid, 0);
+    const responses = batches.flatMap((b) =>
+      b.ids.slice(0, b.valid).map((responseId) => ({
+        responseId,
+        reason: b.reason,
+        decision: 'pending' as const,
+      })),
+    );
     showToast({ message: 'Reconciliation request submitted!', variant: 'success' });
     setMeta((prev) => ({
       ...prev,
@@ -139,6 +139,7 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
       request: {
         ...MOCK_PENDING_RECONCILIATION_REQUEST,
         idsSubmitted,
+        responses: responses.length > 0 ? responses : MOCK_PENDING_RECONCILIATION_REQUEST.responses,
       },
     }));
     setModalOpen(false);
@@ -147,11 +148,12 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
 
   /* ── Footer config per step ── */
   const hasBatches = batches.length > 0;
-  const footerProps = ({
-    1: { canNext: hasBatches,  nextLabel: 'Next',    nextIcon: 'wm-arrow-forward', onBack: undefined,         onNext: () => setStep(2) },
-    2: { canNext: true,        nextLabel: 'Next',    nextIcon: 'wm-arrow-forward', onBack: () => setStep(1), onNext: () => setStep(3) },
-    3: { canNext: confirmed,   nextLabel: 'Submit',  nextIcon: 'wm-send',          onBack: () => setStep(2), onNext: handleSubmit     },
-  } as Record<number, Parameters<typeof StepFooter>[0]>)[step];
+  const footerPropsByStep: Record<number, StepFooterConfig> = {
+    1: { canNext: hasBatches, nextLabel: 'Next',   nextIcon: 'wm-arrow-forward', onNext: () => setStep(2) },
+    2: { canNext: true,       nextLabel: 'Next',   nextIcon: 'wm-arrow-forward', onBack: () => setStep(1), onNext: () => setStep(3) },
+    3: { canNext: confirmed,  nextLabel: 'Submit', nextIcon: 'wm-send',          onBack: () => setStep(2), onNext: handleSubmit },
+  };
+  const footerProps = footerPropsByStep[step];
 
   return (
     <div>
@@ -164,36 +166,16 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
         </div>
       </div>
 
-      {/* ── Wizard modal ── */}
-      <WuModal
+      <ReconcileWizardModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        maxWidth="940px"
-        maxHeight="584px"
-        preventClickOutside
-        aria-describedby={undefined}
-      >
-        <WuModalHeader className="recon-modal-header">
-          <span className="wm-assignment-return text-lg text-[#1b87e6]" aria-hidden="true" />
-          Reconcile
-        </WuModalHeader>
-
-        {/* Scrollable body — no extra padding wrapper */}
-        <WuModalContent className="p-0">
-          <ReconciliationWizard
-            meta={meta}
-            step={step}
-            batches={batches}
-            onBatchesChange={setBatches}
-            onConfirmChange={setConfirmed}
-          />
-        </WuModalContent>
-
-        {/* Sticky footer — outside the scroll area */}
-        <WuModalFooter className="recon-modal-footer block overflow-hidden rounded-b-[inherit] p-0">
-          {footerProps && <StepFooter current={step} {...footerProps} />}
-        </WuModalFooter>
-      </WuModal>
+        meta={meta}
+        step={step}
+        batches={batches}
+        onBatchesChange={setBatches}
+        onConfirmChange={setConfirmed}
+        footerProps={footerProps}
+      />
     </div>
   );
 }

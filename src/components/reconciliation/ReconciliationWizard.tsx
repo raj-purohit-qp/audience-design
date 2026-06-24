@@ -43,6 +43,8 @@ interface StepFooterProps {
   onNext: () => void;
 }
 
+export type StepFooterConfig = Omit<StepFooterProps, 'current'>;
+
 export function StepFooter({ current, canNext, nextLabel = 'Next', nextIcon = 'wm-arrow-forward', onBack, onNext }: StepFooterProps) {
   return (
     <div className="flex w-full items-center justify-between border-t border-[#e0e4e8] bg-white px-6 py-3.5">
@@ -188,7 +190,7 @@ function AddBatchForm({ onAdd, maxRemaining }: { onAdd: (batch: Batch) => void; 
   const hasInput  = rawIds.length > 0 && reason !== '';
 
   function handleAdd() {
-    if (!hasInput || reason === '') return;
+    if (!hasInput) return;
     const invalid = Math.min(Math.floor(rawIds.length * 0.05), 2);
     const valid   = rawIds.length - invalid;
     onAdd({ id: `batch-${Date.now()}`, reason: reason as RejectionReasonValue, ids: rawIds, valid, invalid });

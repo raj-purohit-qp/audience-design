@@ -63,10 +63,17 @@ export interface ReconciliationMeta {
 export const MOCK_PENDING_RECONCILIATION_REQUEST: ReconciliationRequest = {
   requestId: 'REQ-2026-1024',
   submittedDate: 'Jun 24, 2026',
-  idsSubmitted: 0,
+  idsSubmitted: 6,
   status: 'pending',
   creditAmount: 0,
-  responses: [],
+  responses: [
+    { responseId: 'R-20481', reason: 'speeding',           decision: 'pending' },
+    { responseId: 'R-20492', reason: 'straightlining',     decision: 'pending' },
+    { responseId: 'R-20503', reason: 'duplicate_response', decision: 'pending' },
+    { responseId: 'R-20514', reason: 'quality_failure',    decision: 'pending' },
+    { responseId: 'R-20525', reason: 'bot_activity',       decision: 'pending' },
+    { responseId: 'R-20536', reason: 'geo_mismatch',       decision: 'pending' },
+  ],
   auditTrail: [
     { date: 'Jun 24, 2026', event: 'Request submitted' },
     { date: 'Jun 24, 2026', event: 'Validation completed' },
@@ -85,7 +92,7 @@ export const MOCK_RECONCILIATION_REQUEST: ReconciliationRequest = {
     { responseId: 'R-10021', reason: 'speeding',           decision: 'approved'  },
     { responseId: 'R-10034', reason: 'straightlining',     decision: 'approved'  },
     { responseId: 'R-10047', reason: 'bot_activity',       decision: 'approved'  },
-    { responseId: 'R-10058', reason: 'vpn_usage',          decision: 'rejected'  },
+    { responseId: 'R-10058', reason: 'device_mismatch',    decision: 'rejected'  },
     { responseId: 'R-10063', reason: 'geo_mismatch',       decision: 'approved'  },
     { responseId: 'R-10071', reason: 'fraud_detection',    decision: 'approved'  },
     { responseId: 'R-10089', reason: 'quality_failure',    decision: 'rejected'  },
