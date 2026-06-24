@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audience — US Customer Experience Study v3</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("bc46eaf8-a509-42f7-ae8f-70b25a013dd2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("5c758c34-c3a2-4f58-824f-475bbff853a7") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("b64da2b9-1fe0-46df-b104-5657814aba90") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("96419e5f-2b62-4858-a4b3-73d291aaf762") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("d4d2fb1f-d0a6-4a08-afec-a73712a9b513") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("e11996af-6d03-40cd-9df4-f77ca6f50429") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("095a9b28-3133-4d54-90cd-84bb9dd319d8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("42772f95-3bd2-4d71-a173-62761b4824ba") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("bb286658-6509-491b-a69b-6a4e31ad66bc") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("825debe6-2e5a-4523-b1d1-916c6dffb8e4") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("bd2f7486-3a36-4524-a87c-25ffa3cc48cf") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8cb79eb3-1edf-4514-93c2-565e1214dac2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("314135de-1de7-454c-9f78-7e5dd2d846f9") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("62025ac7-d744-45aa-a8da-fd8f10022141") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("20c7023d-90f8-4b1d-97c7-096bf978ecb8") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c0ff33ca-c26f-47ec-abbe-e783e0419600") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c0846fc9-8326-4bde-8003-acac19d01bfe") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("e1d950d5-edb5-450e-babd-ed821923c8fa") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("0b73c110-fb9f-4742-8efa-fae9830d4525") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("86595d22-26b2-4005-b314-ac3761bd39b0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("bb97da12-60e1-43b8-878d-e507f980fe52") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>/* fallback */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 400;
+  src: url("258fab0c-41b2-4a1f-b2cb-28459ae5a261") format('woff2');
+}
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+</style>
+<style>/* QuestionPro icon shim — SUBSTITUTE for the proprietary Wick icon font.
+   Maps wm-/wc-/wp- classes used across Wick UI to Google Material Symbols
+   (Rounded) glyphs via ligatures. Load Material Symbols first:
+
+   <link rel="stylesheet"
+     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+   <link rel="stylesheet" href="assets/icons/wick-icons.css">
+
+   Replace with the real Wick icon font for production. */
+
+[class^="wm-"], [class*=" wm-"],
+[class^="wc-"], [class*=" wc-"],
+[class^="wp-"], [class*=" wp-"] {
+  font-family: "Material Symbols Rounded";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+/* ── Navigation & Layout ─────────────────────────────── */
+.wm-home::before              { content: "home"; }
+.wm-menu::before              { content: "menu"; }
+.wm-apps::before              { content: "apps"; }
+.wm-dashboard::before         { content: "dashboard"; }
+.wm-format-list-bulleted::before { content: "format_list_bulleted"; }
+.wm-arrow-back::before        { content: "arrow_back"; }
+.wm-arrow-forward-ios::before { content: "arrow_forward_ios"; }
+.wm-arrow-drop-down::before   { content: "arrow_drop_down"; }
+.wm-expand-more::before       { content: "expand_more"; }
+.wm-expand-less::before       { content: "expand_less"; }
+.wm-more-vert::before         { content: "more_vert"; }
+.wm-open-in-new::before       { content: "open_in_new"; }
+.wm-close::before             { content: "close"; }
+
+/* ── Actions ─────────────────────────────────────────── */
+.wm-add::before               { content: "add"; }
+.wm-edit::before              { content: "edit"; }
+.wm-delete::before            { content: "delete"; }
+.wm-search::before            { content: "search"; }
+.wm-settings::before          { content: "settings"; }
+.wm-tune::before              { content: "tune"; }
+.wm-refresh::before           { content: "refresh"; }
+.wm-restart-alt::before       { content: "restart_alt"; }
+.wm-visibility::before        { content: "visibility"; }
+.wm-visibility-off::before    { content: "visibility_off"; }
+.wm-file-download::before     { content: "file_download"; }
+.wm-drive-file-move::before   { content: "drive_file_move"; }
+.wm-cancel::before            { content: "cancel"; }
+.wm-rule::before              { content: "rule"; }
+.wm-filter-list::before       { content: "filter_list"; }
+.wm-sort::before              { content: "sort"; }
+
+/* ── Media controls ──────────────────────────────────── */
+.wm-play-arrow::before        { content: "play_arrow"; }
+.wm-pause::before             { content: "pause"; }
+.wm-stop::before              { content: "stop"; }
+
+/* ── Status & Feedback ───────────────────────────────── */
+.wm-check::before             { content: "check"; }
+.wm-check-circle::before      { content: "check_circle"; }
+.wm-verified::before          { content: "verified"; }
+.wm-info::before              { content: "info"; }
+.wm-help::before              { content: "help"; }
+.wm-alert-triangle::before    { content: "warning"; }
+.wm-alert-circle::before      { content: "error"; }
+.wm-warning::before           { content: "warning"; }
+.wm-error::before             { content: "error"; }
+.wm-flag::before              { content: "flag"; }
+.wm-security::before          { content: "security"; }
+
+/* ── People & Identity ───────────────────────────────── */
+.wm-person::before            { content: "person"; }
+.wm-people::before            { content: "people"; }
+.wm-group::before             { content: "group"; }
+.wm-mail::before              { content: "mail"; }
+.wm-notifications::before     { content: "notifications"; }
+
+/* ── Data & Analytics ────────────────────────────────── */
+.wm-analytics::before         { content: "analytics"; }
+.wm-assessment::before        { content: "assessment"; }
+.wm-assignment::before        { content: "assignment"; }
+.wm-bar-chart::before         { content: "bar_chart"; }
+.wm-trending-up::before       { content: "trending_up"; }
+.wm-trending-down::before     { content: "trending_down"; }
+.wm-speed::before             { content: "speed"; }
+.wm-insights::before          { content: "insights"; }
+
+/* ── Finance ──────────────────────────────────────────── */
+.wm-attach-money::before            { content: "attach_money"; }
+.wm-account-balance-wallet::before  { content: "account_balance_wallet"; }
+.wm-shopping-cart::before          { content: "shopping_cart"; }
+.wm-credit-card::before            { content: "credit_card"; }
+
+/* ── Geography & Location ────────────────────────────── */
+.wm-public::before            { content: "public"; }
+.wm-location-on::before       { content: "location_on"; }
+.wm-place::before             { content: "place"; }
+
+/* ── Time & Calendar ─────────────────────────────────── */
+.wm-calendar-clock::before    { content: "calendar_month"; }
+.wm-calendar-today::before    { content: "calendar_today"; }
+.wm-event::before             { content: "event"; }
+.wm-hourglass-empty::before   { content: "hourglass_empty"; }
+.wm-schedule::before          { content: "schedule"; }
+
+/* ── Misc / Content ──────────────────────────────────── */
+.wm-tag::before               { content: "label"; }
+.wm-label::before             { content: "label"; }
+.wm-rocket-launch::before     { content: "rocket_launch"; }
+.wm-star::before              { content: "star"; }
+.wm-favorite::before          { content: "favorite"; }
+.wm-box::before               { content: "inventory_2"; }
+.wm-folder::before            { content: "folder"; }
+.wm-note-stack::before        { content: "stacks"; }
+.wm-progress-activity::before { content: "progress_activity"; }
+.wm-box-edit::before          { content: "edit_square"; }
+.wm-link::before              { content: "link"; }
+.wm-copy::before              { content: "content_copy"; }
+
+/* ── Wick Custom (wc-) ───────────────────────────────── */
+.wc-edit::before              { content: "edit_square"; }
+.wc-design::before            { content: "palette"; }
+.wc-media-library::before     { content: "perm_media"; }
+.wc-settings::before          { content: "settings"; }
+.wc-chart::before             { content: "bar_chart"; }
+.wc-area-chart::before        { content: "area_chart"; }
+.wc-categories::before        { content: "category"; }
+.wc-mappings::before          { content: "account_tree"; }
+.wc-completion::before        { content: "task_alt"; }
+.wc-history::before           { content: "history"; }
+
+/* ── Wick Product (wp-) ──────────────────────────────── */
+.wp-bi::before                { content: "insights"; }
+</style>
+
+<style>/* QuestionPro — Webfont declarations
+   Brand typeface: Fira Sans (open-source, used throughout the product).
+
+   NOTE: font binaries are not bundled in this system. Fira Sans is loaded
+   from Google Fonts via the <link> in each card/kit. If you need offline
+   binaries, drop .woff2 files in assets/fonts/ and point the src below at
+   them. Material Symbols (icon font) substitutes the proprietary Wick icon
+   font — see readme ICONOGRAPHY. */
+
+/* Loaded via:
+   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+   Declared here for completeness so the compiler indexes the family. */
+</style>
+<style>/* QuestionPro — Color tokens
+   Source of truth: QuestionPro design tokens JSON (designTokens.colors).
+   Base palette values + semantic aliases. */
+
+:root {
+  /* ---- Brand ---- */
+  --qp-dark-blue: #1B3380;      /* Trust, key elements, primary surfaces  */
+  --qp-electric-blue: #1B87E6;  /* Primary buttons, hyperlinks, interactive */
+
+  /* ---- Gray scale ---- */
+  --qp-gray-lead: #545E6B;      /* Body text, subtitles, minor hierarchy */
+  --qp-gray-100: #9B9B9B;       /* Descriptive text, notes, disabled */
+  --qp-gray-notification: #555555; /* Tooltip backgrounds */
+  --qp-gray-40: #D8D8D8;        /* Container background + outline */
+  --qp-gray-25: #E8E8E8;        /* Contrast / focus for lighter elements */
+  --qp-gray-20: #EEEEEE;        /* Sidebar background */
+  --qp-gray-10: #F5F5F5;        /* Minor hierarchy / subtle surfaces */
+  --qp-white: #FFFFFF;
+  --qp-black: #1A1A1A;
+
+  /* ---- Notifications: deep (foreground/icon) + soft (background) ---- */
+  --qp-info-deep: #215694;
+  --qp-info-soft: #CCF0FF;
+  --qp-success-deep: #227700;
+  --qp-success-soft: #DFF2BF;
+  --qp-warning-deep: #9F6000;
+  --qp-warning-soft: #FEEFB3;
+  --qp-error-deep: #CC0000;
+  --qp-error-soft: #FFBABA;
+
+  /* ---- Upgrade / payment accent ---- */
+  --qp-upgrade: #F5A300;        /* Plan upgrade CTAs — sense of action/value */
+  --qp-upgrade-hover: #FFCF70;  /* Hover for payment & upgrade actions */
+
+  /* ---- Semantic aliases ---- */
+  --color-primary: var(--qp-electric-blue);
+  --color-primary-strong: var(--qp-dark-blue);
+  --color-link: var(--qp-electric-blue);
+
+  --text-strong: var(--qp-dark-blue);
+  --text-body: var(--qp-gray-lead);
+  --text-muted: var(--qp-gray-100);
+  --text-on-primary: var(--qp-white);
+
+  --surface-page: var(--qp-white);
+  --surface-card: var(--qp-white);
+  --surface-subtle: var(--qp-gray-10);
+  --surface-sidebar: var(--qp-gray-20);
+  --surface-tooltip: var(--qp-gray-notification);
+
+  --border-default: var(--qp-gray-40);
+  --border-subtle: var(--qp-gray-25);
+  --border-focus: var(--qp-electric-blue);
+}
+</style>
+<style>/* QuestionPro — Typography tokens
+   Typeface: Fira Sans (open-source, humanist sans). Faithful encoding of the
+   official type spec: every named style carries an exact size, weight, and
+   line-height. Only THREE weights are used across the system:
+   Light (300) · Regular (400) · Medium (500). There is no 600/700 in the scale. */
+
+:root {
+  --font-sans: "Fira Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---- Weights (the only three in the scale) ---- */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+
+  /* =====================================================================
+     Per-style tokens — size / weight / line-height
+     Composite `--text-*` tokens are usable directly as  font: var(--text-*);
+     ===================================================================== */
+
+  /* ---- Display ---- */
+  --font-display-01: 48px;            /* Oversized headings, empty states, survey welcome */
+  --font-display-01-weight: 300;      /* Light */
+  --font-display-01-line: 56px;
+  --text-display-01: 300 48px/56px var(--font-sans);
+
+  --font-display-02: 40px;            /* Highlighting key data in dashboards */
+  --font-display-02-weight: 400;      /* Regular */
+  --font-display-02-line: 48px;
+  --text-display-02: 400 40px/48px var(--font-sans);
+
+  /* ---- Headings ---- */
+  --font-heading-01: 32px;            /* Main page title — once per page */
+  --font-heading-01-weight: 400;      /* Regular */
+  --font-heading-01-line: 40px;
+  --text-heading-01: 400 32px/40px var(--font-sans);
+
+  --font-heading-02: 24px;            /* Key data, respondent questions, sub-sections */
+  --font-heading-02-weight: 400;      /* Regular */
+  --font-heading-02-line: 32px;
+  --text-heading-02: 400 24px/32px var(--font-sans);
+
+  --font-heading-03: 18px;            /* Card/widget titles, modal header, RX options */
+  --font-heading-03-weight: 500;      /* Medium */
+  --font-heading-03-line: 32px;
+  --text-heading-03: 500 18px/32px var(--font-sans);
+
+  --font-heading-04: 16px;            /* Lowest section titles, navigation, card titles */
+  --font-heading-04-weight: 500;      /* Medium */
+  --font-heading-04-line: 24px;
+  --text-heading-04: 500 16px/24px var(--font-sans);
+
+  /* ---- Subtitles ---- */
+  --font-subtitle-01: 16px;           /* Most content, instructions, stand-alone text */
+  --font-subtitle-01-weight: 400;
+  --font-subtitle-01-line: 24px;
+  --text-subtitle-01: 400 16px/24px var(--font-sans);
+
+  --font-subtitle-02: 14px;           /* Modal instructions, labels */
+  --font-subtitle-02-weight: 400;
+  --font-subtitle-02-line: 16px;
+  --text-subtitle-02: 400 14px/16px var(--font-sans);
+
+  --font-subtitle-03: 12px;           /* Dropdowns, inputs, table content, chart labels */
+  --font-subtitle-03-weight: 400;
+  --font-subtitle-03-line: 16px;
+  --text-subtitle-03: 400 12px/16px var(--font-sans);
+
+  /* ---- Body ---- */
+  --font-body-01: 16px;               /* Primary content, long paragraphs, guides */
+  --font-body-01-weight: 400;
+  --font-body-01-line: 24px;
+  --text-body-01: 400 16px/24px var(--font-sans);
+
+  --font-body-02: 14px;               /* Secondary / supporting info, denser layouts */
+  --font-body-02-weight: 400;
+  --font-body-02-line: 16px;
+  --text-body-02: 400 14px/16px var(--font-sans);
+
+  --font-body-03: 12px;               /* Tertiary, glanceable text */
+  --font-body-03-weight: 400;
+  --font-body-03-line: 16px;
+  --text-body-03: 400 12px/16px var(--font-sans);
+
+  /* ---- Button text ---- */
+  --font-button-lg: 16px;             /* Respondent-experience buttons */
+  --font-button-lg-weight: 400;
+  --font-button-lg-line: 24px;
+  --text-button-lg: 400 16px/24px var(--font-sans);
+
+  --font-button-md: 14px;             /* Standard buttons everywhere */
+  --font-button-md-weight: 400;
+  --font-button-md-line: 16px;
+  --text-button-md: 400 14px/16px var(--font-sans);
+
+  --font-button-sm: 12px;             /* Smallest secondary CTA */
+  --font-button-sm-weight: 400;
+  --font-button-sm-line: 16px;
+  --text-button-sm: 400 12px/16px var(--font-sans);
+}
+</style>
+<style>/* QuestionPro — Spacing tokens
+   Three tiers from designTokens.layoutSpacing:
+   minimal (within components), baseline (most common), large (distant groups). */
+
+:root {
+  /* ---- Minimal — internal relationships within components ---- */
+  --space-000: 0px;
+  --space-012: 1px;
+  --space-025: 2px;
+  --space-050: 4px;
+
+  /* ---- Baseline — most common padding / gaps ---- */
+  --space-100: 8px;
+  --space-150: 12px;
+  --space-200: 16px;
+  --space-300: 24px;
+  --space-400: 32px;
+
+  /* ---- Large — distant components / generous real estate ---- */
+  --space-500: 40px;
+  --space-600: 48px;
+  --space-700: 56px;
+  --space-800: 64px;
+  --space-900: 72px;
+  --space-1000: 80px;
+  --space-1100: 88px;
+  --space-1200: 96px;
+  --space-1300: 104px;
+}
+</style>
+<style>/* QuestionPro — Radii, borders & elevation
+   Radii from designTokens.cornerRadii. Shadows inferred from product surfaces
+   (cards, dropdowns, modals) — soft, low-spread, neutral. */
+
+:root {
+  /* ---- Corner radii ---- */
+  --radius-sm: 4px;     /* chips, small buttons, text fields (2–4px) */
+  --radius-sm-tight: 2px;
+  --radius-md: 8px;     /* standard cards, dropdowns, default buttons (6–8px) */
+  --radius-md-tight: 6px;
+  --radius-lg: 12px;    /* modal containers, large floating panels (12–16px) */
+  --radius-lg-loose: 16px;
+  --radius-pill: 9999px;/* avatars, rounded primary buttons */
+
+  /* ---- Border widths ---- */
+  --border-width: 1px;
+  --border-width-strong: 2px;
+
+  /* ---- Elevation ---- */
+  --shadow-xs: 0 1px 2px rgba(27, 51, 128, 0.06);
+  --shadow-sm: 0 1px 3px rgba(27, 51, 128, 0.10), 0 1px 2px rgba(27, 51, 128, 0.06);
+  --shadow-md: 0 4px 12px rgba(27, 51, 128, 0.10);
+  --shadow-lg: 0 10px 40px rgba(27, 51, 128, 0.15);
+
+  /* ---- Focus ring ---- */
+  --focus-ring: 0 0 0 3px rgba(27, 135, 230, 0.30);
+}
+</style>
+<style>/* QuestionPro Design System — global entry point.
+   Consumers link THIS file. It is a manifest of @imports only. */
+
+/* QuestionPro — Webfont declarations
+   Brand typeface: Fira Sans (open-source, used throughout the product).
+
+   NOTE: font binaries are not bundled in this system. Fira Sans is loaded
+   from Google Fonts via the <link> in each card/kit. If you need offline
+   binaries, drop .woff2 files in assets/fonts/ and point the src below at
+   them. Material Symbols (icon font) substitutes the proprietary Wick icon
+   font — see readme ICONOGRAPHY. */
+
+/* Loaded via:
+   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+   Declared here for completeness so the compiler indexes the family. */
+
+/* QuestionPro — Color tokens
+   Source of truth: QuestionPro design tokens JSON (designTokens.colors).
+   Base palette values + semantic aliases. */
+
+:root {
+  /* ---- Brand ---- */
+  --qp-dark-blue: #1B3380;      /* Trust, key elements, primary surfaces  */
+  --qp-electric-blue: #1B87E6;  /* Primary buttons, hyperlinks, interactive */
+
+  /* ---- Gray scale ---- */
+  --qp-gray-lead: #545E6B;      /* Body text, subtitles, minor hierarchy */
+  --qp-gray-100: #9B9B9B;       /* Descriptive text, notes, disabled */
+  --qp-gray-notification: #555555; /* Tooltip backgrounds */
+  --qp-gray-40: #D8D8D8;        /* Container background + outline */
+  --qp-gray-25: #E8E8E8;        /* Contrast / focus for lighter elements */
+  --qp-gray-20: #EEEEEE;        /* Sidebar background */
+  --qp-gray-10: #F5F5F5;        /* Minor hierarchy / subtle surfaces */
+  --qp-white: #FFFFFF;
+  --qp-black: #1A1A1A;
+
+  /* ---- Notifications: deep (foreground/icon) + soft (background) ---- */
+  --qp-info-deep: #215694;
+  --qp-info-soft: #CCF0FF;
+  --qp-success-deep: #227700;
+  --qp-success-soft: #DFF2BF;
+  --qp-warning-deep: #9F6000;
+  --qp-warning-soft: #FEEFB3;
+  --qp-error-deep: #CC0000;
+  --qp-error-soft: #FFBABA;
+
+  /* ---- Upgrade / payment accent ---- */
+  --qp-upgrade: #F5A300;        /* Plan upgrade CTAs — sense of action/value */
+  --qp-upgrade-hover: #FFCF70;  /* Hover for payment & upgrade actions */
+
+  /* ---- Semantic aliases ---- */
+  --color-primary: var(--qp-electric-blue);
+  --color-primary-strong: var(--qp-dark-blue);
+  --color-link: var(--qp-electric-blue);
+
+  --text-strong: var(--qp-dark-blue);
+  --text-body: var(--qp-gray-lead);
+  --text-muted: var(--qp-gray-100);
+  --text-on-primary: var(--qp-white);
+
+  --surface-page: var(--qp-white);
+  --surface-card: var(--qp-white);
+  --surface-subtle: var(--qp-gray-10);
+  --surface-sidebar: var(--qp-gray-20);
+  --surface-tooltip: var(--qp-gray-notification);
+
+  --border-default: var(--qp-gray-40);
+  --border-subtle: var(--qp-gray-25);
+  --border-focus: var(--qp-electric-blue);
+}
+
+/* QuestionPro — Typography tokens
+   Typeface: Fira Sans (open-source, humanist sans). Faithful encoding of the
+   official type spec: every named style carries an exact size, weight, and
+   line-height. Only THREE weights are used across the system:
+   Light (300) · Regular (400) · Medium (500). There is no 600/700 in the scale. */
+
+:root {
+  --font-sans: "Fira Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---- Weights (the only three in the scale) ---- */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+
+  /* =====================================================================
+     Per-style tokens — size / weight / line-height
+     Composite `--text-*` tokens are usable directly as  font: var(--text-*);
+     ===================================================================== */
+
+  /* ---- Display ---- */
+  --font-display-01: 48px;            /* Oversized headings, empty states, survey welcome */
+  --font-display-01-weight: 300;      /* Light */
+  --font-display-01-line: 56px;
+  --text-display-01: 300 48px/56px var(--font-sans);
+
+  --font-display-02: 40px;            /* Highlighting key data in dashboards */
+  --font-display-02-weight: 400;      /* Regular */
+  --font-display-02-line: 48px;
+  --text-display-02: 400 40px/48px var(--font-sans);
+
+  /* ---- Headings ---- */
+  --font-heading-01: 32px;            /* Main page title — once per page */
+  --font-heading-01-weight: 400;      /* Regular */
+  --font-heading-01-line: 40px;
+  --text-heading-01: 400 32px/40px var(--font-sans);
+
+  --font-heading-02: 24px;            /* Key data, respondent questions, sub-sections */
+  --font-heading-02-weight: 400;      /* Regular */
+  --font-heading-02-line: 32px;
+  --text-heading-02: 400 24px/32px var(--font-sans);
+
+  --font-heading-03: 18px;            /* Card/widget titles, modal header, RX options */
+  --font-heading-03-weight: 500;      /* Medium */
+  --font-heading-03-line: 32px;
+  --text-heading-03: 500 18px/32px var(--font-sans);
+
+  --font-heading-04: 16px;            /* Lowest section titles, navigation, card titles */
+  --font-heading-04-weight: 500;      /* Medium */
+  --font-heading-04-line: 24px;
+  --text-heading-04: 500 16px/24px var(--font-sans);
+
+  /* ---- Subtitles ---- */
+  --font-subtitle-01: 16px;           /* Most content, instructions, stand-alone text */
+  --font-subtitle-01-weight: 400;
+  --font-subtitle-01-line: 24px;
+  --text-subtitle-01: 400 16px/24px var(--font-sans);
+
+  --font-subtitle-02: 14px;           /* Modal instructions, labels */
+  --font-subtitle-02-weight: 400;
+  --font-subtitle-02-line: 16px;
+  --text-subtitle-02: 400 14px/16px var(--font-sans);
+
+  --font-subtitle-03: 12px;           /* Dropdowns, inputs, table content, chart labels */
+  --font-subtitle-03-weight: 400;
+  --font-subtitle-03-line: 16px;
+  --text-subtitle-03: 400 12px/16px var(--font-sans);
+
+  /* ---- Body ---- */
+  --font-body-01: 16px;               /* Primary content, long paragraphs, guides */
+  --font-body-01-weight: 400;
+  --font-body-01-line: 24px;
+  --text-body-01: 400 16px/24px var(--font-sans);
+
+  --font-body-02: 14px;               /* Secondary / supporting info, denser layouts */
+  --font-body-02-weight: 400;
+  --font-body-02-line: 16px;
+  --text-body-02: 400 14px/16px var(--font-sans);
+
+  --font-body-03: 12px;               /* Tertiary, glanceable text */
+  --font-body-03-weight: 400;
+  --font-body-03-line: 16px;
+  --text-body-03: 400 12px/16px var(--font-sans);
+
+  /* ---- Button text ---- */
+  --font-button-lg: 16px;             /* Respondent-experience buttons */
+  --font-button-lg-weight: 400;
+  --font-button-lg-line: 24px;
+  --text-button-lg: 400 16px/24px var(--font-sans);
+
+  --font-button-md: 14px;             /* Standard buttons everywhere */
+  --font-button-md-weight: 400;
+  --font-button-md-line: 16px;
+  --text-button-md: 400 14px/16px var(--font-sans);
+
+  --font-button-sm: 12px;             /* Smallest secondary CTA */
+  --font-button-sm-weight: 400;
+  --font-button-sm-line: 16px;
+  --text-button-sm: 400 12px/16px var(--font-sans);
+}
+
+/* QuestionPro — Spacing tokens
+   Three tiers from designTokens.layoutSpacing:
+   minimal (within components), baseline (most common), large (distant groups). */
+
+:root {
+  /* ---- Minimal — internal relationships within components ---- */
+  --space-000: 0px;
+  --space-012: 1px;
+  --space-025: 2px;
+  --space-050: 4px;
+
+  /* ---- Baseline — most common padding / gaps ---- */
+  --space-100: 8px;
+  --space-150: 12px;
+  --space-200: 16px;
+  --space-300: 24px;
+  --space-400: 32px;
+
+  /* ---- Large — distant components / generous real estate ---- */
+  --space-500: 40px;
+  --space-600: 48px;
+  --space-700: 56px;
+  --space-800: 64px;
+  --space-900: 72px;
+  --space-1000: 80px;
+  --space-1100: 88px;
+  --space-1200: 96px;
+  --space-1300: 104px;
+}
+
+/* QuestionPro — Radii, borders & elevation
+   Radii from designTokens.cornerRadii. Shadows inferred from product surfaces
+   (cards, dropdowns, modals) — soft, low-spread, neutral. */
+
+:root {
+  /* ---- Corner radii ---- */
+  --radius-sm: 4px;     /* chips, small buttons, text fields (2–4px) */
+  --radius-sm-tight: 2px;
+  --radius-md: 8px;     /* standard cards, dropdowns, default buttons (6–8px) */
+  --radius-md-tight: 6px;
+  --radius-lg: 12px;    /* modal containers, large floating panels (12–16px) */
+  --radius-lg-loose: 16px;
+  --radius-pill: 9999px;/* avatars, rounded primary buttons */
+
+  /* ---- Border widths ---- */
+  --border-width: 1px;
+  --border-width-strong: 2px;
+
+  /* ---- Elevation ---- */
+  --shadow-xs: 0 1px 2px rgba(27, 51, 128, 0.06);
+  --shadow-sm: 0 1px 3px rgba(27, 51, 128, 0.10), 0 1px 2px rgba(27, 51, 128, 0.06);
+  --shadow-md: 0 4px 12px rgba(27, 51, 128, 0.10);
+  --shadow-lg: 0 10px 40px rgba(27, 51, 128, 0.15);
+
+  /* ---- Focus ring ---- */
+  --focus-ring: 0 0 0 3px rgba(27, 135, 230, 0.30);
+}
+
+</style>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--surface-subtle);
+    color: var(--text-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { height: 100%; }
+  button { font-family: var(--font-sans); }
+  input  { font-family: var(--font-sans); }
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script src="e026fcfa-b8bd-40da-b965-5e7bdd99e30a" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="3b61c51d-e4e8-49b7-90c9-8936713f70e8" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="dbc43156-fb4c-438e-8fb7-fe3ae87a21fb" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="2e3e23d1-0769-4260-b50d-fa414345c81f"></script>
+<script type="text/babel" src="56ada1ab-abf5-455f-adc5-f69fa1c19048"></script>
+<script type="text/babel" src="3807d5f2-b8e4-4e19-8f17-9524d98dc315"></script>
+
+
+</body></html>

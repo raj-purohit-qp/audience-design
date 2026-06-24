@@ -1,2 +1,47 @@
 @import "tailwindcss";
 @import '@npm-questionpro/wick-ui-icon/dist/wu-icon.css';
+
+.audience-input-70x32 [data-slot='wu-input-group'] {
+  width: 70px;
+  height: 32px;
+}
+
+.audience-input-70x32 input {
+  box-sizing: border-box;
+  width: 70px !important;
+  height: 32px !important;
+  min-height: 32px;
+  max-width: 70px;
+  padding-inline: 8px;
+}
+
+.audience-header-breadcrumb-link {
+  color: rgb(var(--wu-blue-p)) !important;
+}
+
+.audience-header-breadcrumb-link:hover {
+  color: rgb(var(--wu-blue-pHover-deep)) !important;
+}
+
+/* Strip WuModalFooter default padding so StepFooter controls its own spacing */
+.recon-modal-footer {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* WickUI-standard modal header: #EEF3FB bg, 0px 16px padding, 56px height */
+.recon-modal-header {
+  background: #EEF3FB !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+}
+.recon-modal-header > *,
+.recon-modal-header > * > * {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  background: #EEF3FB !important;
+}

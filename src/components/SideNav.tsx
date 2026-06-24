@@ -2,10 +2,15 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
 
 const WuSidebarContent = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSidebarContent })),
+  { ssr: false }
+);
+const WuSidebarFooter = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSidebarFooter })),
   { ssr: false }
 );
 const WuSidebarItem = dynamic(
@@ -13,28 +18,67 @@ const WuSidebarItem = dynamic(
   { ssr: false }
 );
 
-const NAV_ITEMS = [
-  {
-    label: 'Projects',
-    href: '/projects',
-    icon: <span className="wm-folder-data" />,
-  }
-];
-
 export function SideNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { showToast } = useWuShowToast();
+
+  const isProjectsList = pathname === '/projects' || pathname.startsWith('/projects/');
 
   return (
-    <WuSidebarContent>
-      {NAV_ITEMS.map((item) => (
+    <>
+      <WuSidebarContent>
         <WuSidebarItem
-          key={item.href}
-          Icon={item.icon}
-          isActive={pathname.startsWith(item.href)}
+          Icon={<span className="wm-list" />}
+          isActive={isProjectsList}
         >
-          <Link href={item.href}>{item.label}</Link>
+          <Link href="/projects">Projects</Link>
         </WuSidebarItem>
-      ))}
-    </WuSidebarContent>
+        <WuSidebarItem
+          Icon={<span className="wm-grid-view" />}
+          isActive={false}
+        >
+          <button
+            type="button"
+            className="w-full text-left"
+            onClick={() =>
+              showToast({ message: 'Grid view coming soon', variant: 'success' })
+            }
+          >
+            Dashboard
+          </button>
+        </WuSidebarItem>
+      </WuSidebarContent>
+
+      <WuSidebarFooter>
+        <WuSidebarItem Icon={<span className="wm-delete" />}>
+          <button
+            type="button"
+            className="w-full text-left"
+            onClick={() => router.push('/projects')}
+          >
+            Trash
+          </button>
+        </WuSidebarItem>
+        <WuSidebarItem Icon={<span className="wm-settings" />}>
+          <button
+            type="button"
+            className="w-full text-left"
+            onClick={() => showToast({ message: 'Settings coming soon', variant: 'success' })}
+          >
+            Settings
+          </button>
+        </WuSidebarItem>
+        <WuSidebarItem Icon={<span className="wm-info" />}>
+          <button
+            type="button"
+            className="w-full text-left"
+            onClick={() => showToast({ message: 'Help & information', variant: 'success' })}
+          >
+            Information
+          </button>
+        </WuSidebarItem>
+      </WuSidebarFooter>
+    </>
   );
 }

@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { IWuTableColumnDef } from '@npm-questionpro/wick-ui-lib';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { AudienceFooter } from '@/components/audience/AudienceFooter';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { MOCK_PROJECTS, type Project, type ProjectStatus } from '@/data/mock-projects';
-import { formatDate } from '@/data/mock-utils';
+import {
+  MOCK_AUDIENCE_PROJECTS,
+  formatCurrency,
+  type AudienceProject,
+  type AudienceProjectStatus,
+} from '@/data/mock-audience-projects';
 
 const WuTable = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTable })),
@@ -24,10 +27,6 @@ const WuInput = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuInput })),
   { ssr: false }
 );
-const WuSelect = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSelect })),
-  { ssr: false }
-);
 const WuMenu = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuMenu })),
   { ssr: false }
@@ -36,273 +35,224 @@ const WuMenuItem = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuMenuItem })),
   { ssr: false }
 );
-const WuMenuSeparatorItem = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuMenuSeparatorItem })),
-  { ssr: false }
-);
-const WuModal = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModal })),
-  { ssr: false }
-);
-const WuModalHeader = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalHeader })),
-  { ssr: false }
-);
-const WuModalContent = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalContent })),
-  { ssr: false }
-);
-const WuModalFooter = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalFooter })),
-  { ssr: false }
-);
-const WuModalClose = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuModalClose })),
-  { ssr: false }
-);
-const WuTextarea = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTextarea })),
-  { ssr: false }
-);
 
-type StatusOption = { value: string; label: string };
+const STATUS_DOT: Record<AudienceProjectStatus, string> = {
+  Closed: 'bg-gray-400',
+  Bid: 'bg-gray-400',
+  Live: 'bg-green-500',
+  Draft: 'bg-amber-400',
+};
 
-const STATUS_FILTER_OPTIONS: StatusOption[] = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'active', label: 'Active' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'archived', label: 'Archived' },
-];
-
-function StatusBadge({ status }: { status: ProjectStatus }) {
-  const styles: Record<ProjectStatus, string> = {
-    active: 'bg-green-100 text-green-700',
-    draft: 'bg-gray-100 text-gray-600',
-    archived: 'bg-amber-100 text-amber-700',
-  };
+function ProjectTypeIcon() {
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${styles[status]}`}>
-      {status}
+    <span
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600"
+      aria-label="Audience project"
+    >
+      <span className="wm-groups text-lg" aria-hidden="true" />
     </span>
   );
 }
 
-function RowActions({
-  project,
-  onArchive,
-}: {
-  project: Project;
-  onArchive: (p: Project) => void;
-}) {
-  const router = useRouter();
+function ProjectNameCell({ project }: { project: AudienceProject }) {
+  return (
+    <div className="min-w-0 py-1">
+      <Link
+        href={`/projects/${project.id}`}
+        className="block truncate font-semibold text-gray-900 hover:text-blue-600 hover:underline"
+      >
+        {project.name}
+      </Link>
+      <span className="text-xs text-gray-500">Project ID: {project.projectId}</span>
+    </div>
+  );
+}
+
+function StatusCell({ project }: { project: AudienceProject }) {
+  const { showToast } = useWuShowToast();
+
+  const statusContent = (
+    <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[project.status]}`}
+        aria-hidden="true"
+      />
+      {project.status}
+      {project.status === 'Bid' && (
+        <span className="wm-expand-more text-base text-gray-500" aria-hidden="true" />
+      )}
+    </span>
+  );
+
+  if (project.status !== 'Bid') {
+    return statusContent;
+  }
+
   return (
     <WuMenu
       Trigger={
-        <button type="button" className="p-1 rounded-md hover:bg-gray-100">
-          <span className="wm-more-vert text-gray-500" />
+        <button
+          type="button"
+          className="rounded-md px-1 py-0.5 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label={`Change status for ${project.name}`}
+        >
+          {statusContent}
         </button>
       }
-      align="end"
+      align="start"
     >
-      <WuMenuItem onSelect={() => router.push(`/projects/${project.id}`)}>
-        View details
+      <WuMenuItem onSelect={() => showToast({ message: 'Status updated to Live', variant: 'success' })}>
+        Mark as Live
       </WuMenuItem>
-      <WuMenuSeparatorItem />
-      <WuMenuItem
-        onSelect={() => onArchive(project)}
-        disabled={project.status === 'archived'}
-      >
-        Archive
+      <WuMenuItem onSelect={() => showToast({ message: 'Status updated to Closed', variant: 'success' })}>
+        Mark as Closed
       </WuMenuItem>
     </WuMenu>
   );
 }
 
-const DEFAULT_FORM = { name: '', description: '', status: 'draft' as ProjectStatus };
+function ProgressCell({ percent }: { percent: number }) {
+  return (
+    <div className="min-w-[100px] space-y-1.5">
+      <span className="text-sm font-medium text-gray-900">{percent}%</span>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-gray-200">
+        <div
+          className="h-full rounded-full bg-blue-600 transition-all"
+          style={{ width: `${Math.min(percent, 100)}%` }}
+          role="progressbar"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        />
+      </div>
+    </div>
+  );
+}
 
-export default function ProjectsPage() {
-  const { showToast } = useWuShowToast();
+export default function AudienceLandingPage() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusOption | null>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [formData, setFormData] = useState(DEFAULT_FORM);
-  const [archiveTarget, setArchiveTarget] = useState<Project | null>(null);
+  const [selectedRows, setSelectedRows] = useState<AudienceProject[]>([]);
 
-  const filteredProjects = useMemo(() => {
-    if (!statusFilter || statusFilter.value === 'all') return MOCK_PROJECTS;
-    return MOCK_PROJECTS.filter((p) => p.status === statusFilter.value);
-  }, [statusFilter]);
-
-  const columns: IWuTableColumnDef<Project>[] = [
+  const columns: IWuTableColumnDef<AudienceProject>[] = [
+    {
+      accessorKey: 'type',
+      header: 'Type',
+      cell: () => <ProjectTypeIcon />,
+      enableSorting: false as const,
+    },
     {
       accessorKey: 'name',
-      header: 'Project Name',
+      header: 'Project name',
       filterable: true,
-      cell: ({ row }) => (
-        <Link
-          href={`/projects/${row.original.id}`}
-          className="font-medium text-blue-600 hover:underline"
-        >
-          {row.original.name}
-        </Link>
-      ),
+      cell: ({ row }) => <ProjectNameCell project={row.original} />,
     },
     {
       accessorKey: 'status',
       header: 'Status',
       filterable: true,
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      cell: ({ row }) => <StatusCell project={row.original} />,
     },
     {
-      accessorKey: 'owner',
-      header: 'Owner',
-      filterable: true,
-      cell: ({ row }) => row.original.owner,
-    },
-    {
-      accessorKey: 'responses',
-      header: 'Responses',
+      accessorKey: 'progressPercent',
+      header: 'Progress',
       headerAlign: 'right',
       cellAlign: 'right',
-      cell: ({ row }) => row.original.responses.toLocaleString(),
+      cell: ({ row }) => <ProgressCell percent={row.original.progressPercent} />,
     },
     {
-      accessorKey: 'createdAt',
-      header: 'Created',
-      cell: ({ row }) => formatDate(row.original.createdAt),
-    },
-    {
-      accessorKey: 'id',
-      header: '',
+      accessorKey: 'completesCurrent',
+      header: 'Completes',
+      headerAlign: 'right',
       cellAlign: 'right',
       cell: ({ row }) => (
-        <RowActions project={row.original} onArchive={setArchiveTarget} />
+        <span className="text-sm text-gray-900">
+          {row.original.completesCurrent.toLocaleString()} of{' '}
+          {row.original.completesTarget.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'costPerComplete',
+      header: 'Cost per complete',
+      headerAlign: 'right',
+      cellAlign: 'right',
+      cell: ({ row }) => (
+        <span className="text-sm text-gray-900">
+          {formatCurrency(row.original.costPerComplete)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'totalCost',
+      header: 'Total cost',
+      headerAlign: 'right',
+      cellAlign: 'right',
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-gray-900">
+          {formatCurrency(row.original.totalCost)}
+        </span>
       ),
     },
   ];
 
-  function handleCreate() {
-    if (!formData.name.trim()) return;
-    setIsCreateOpen(false);
-    setFormData(DEFAULT_FORM);
-    showToast({ message: `"${formData.name}" created`, variant: 'success' });
-  }
-
-  function handleArchive() {
-    if (!archiveTarget) return;
-    showToast({ message: `"${archiveTarget.name}" archived`, variant: 'success' });
-    setArchiveTarget(null);
-  }
-
-  const statusFormOptions = [
-    { value: 'draft' as const, label: 'Draft' },
-    { value: 'active' as const, label: 'Active' },
-  ];
+  const filteredData = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return MOCK_AUDIENCE_PROJECTS;
+    return MOCK_AUDIENCE_PROJECTS.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.projectId.toLowerCase().includes(query) ||
+        p.status.toLowerCase().includes(query)
+    );
+  }, [search]);
 
   return (
-    <div className="p-6">
-      <PageHeader
-        title="Projects"
-        description="Manage and track all your research projects"
-        action={
-          <WuButton onClick={() => setIsCreateOpen(true)}>
-            <span className="wm-add" /> New Project
-          </WuButton>
-        }
-      />
+    <div className="flex min-h-full flex-col">
+      <div className="flex items-center px-6 py-4">
+        <WuButton onClick={() => router.push('/projects/create')}>
+          <span className="wm-add" aria-hidden="true" /> Create project
+        </WuButton>
 
-      <div className="flex items-center gap-3 mb-4">
-        <WuInput
-          variant="outlined"
-          placeholder="Search projects..."
-          Icon={<span className="wm-search" />}
-          iconPosition="left"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
-        />
-        <WuSelect
-          data={STATUS_FILTER_OPTIONS}
-          accessorKey={{ value: 'value', label: 'label' }}
-          value={statusFilter}
-          onSelect={(v) => {
-            const item = v as StatusOption;
-            setStatusFilter(item.value === 'all' ? null : item);
+        <div className="ml-auto shrink-0">
+          <WuInput
+            variant="flat"
+            placeholder="Search"
+            Icon={<span className="wm-search" aria-hidden="true" />}
+            iconPosition="left"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 w-[179px] bg-[#F5F5F5]"
+            aria-label="Search"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 px-6 pb-4">
+        <WuTable
+          data={filteredData as unknown[]}
+          columns={columns as unknown as IWuTableColumnDef<unknown>[]}
+          variant="striped"
+          sort={{ enabled: true }}
+          filterText={search}
+          stickyHeader
+          rowSelection={{
+            isEnabled: true,
+            selectedRows: selectedRows as unknown[],
+            onRowSelect: setSelectedRows as Dispatch<SetStateAction<unknown[]>>,
+            rowUniqueKey: 'id',
           }}
-          // placeholder="Select Status"
-          variant="outlined"
+          NoDataContent={
+            <EmptyState
+              icon="wm-search-off"
+              title="No projects found"
+              description="Try adjusting your search"
+            />
+          }
         />
       </div>
 
-      <WuTable
-        data={filteredProjects as unknown[]}
-        columns={columns as unknown as IWuTableColumnDef<unknown>[]}
-        variant="striped"
-        sort={{ enabled: true }}
-        filterText={search}
-        NoDataContent={
-          <EmptyState
-            icon="wm-search-off"
-            title="No projects found"
-            description="Try adjusting your search or filter"
-          />
-        }
-      />
-
-      {/* Create project modal */}
-      <WuModal open={isCreateOpen} onOpenChange={setIsCreateOpen} size="md">
-        <WuModalHeader>New Project</WuModalHeader>
-        <WuModalContent>
-          <div className="flex flex-col gap-4">
-            <WuInput
-              Label="Project Name"
-              variant="outlined"
-              placeholder="e.g. Customer Satisfaction Q2 2025"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
-            />
-            <WuTextarea
-              Label="Description"
-              variant="outlined"
-              placeholder="What is this project measuring?"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, description: e.target.value }))
-              }
-            />
-            <WuSelect
-              data={statusFormOptions}
-              accessorKey={{ value: 'value', label: 'label' }}
-              value={statusFormOptions.find((o) => o.value === formData.status) ?? null}
-              onSelect={(v) => {
-                const item = v as { value: ProjectStatus; label: string };
-                setFormData((prev) => ({ ...prev, status: item.value }));
-              }}
-              Label="Status"
-              variant="outlined"
-            />
-          </div>
-        </WuModalContent>
-        <WuModalFooter>
-          <WuModalClose variant="secondary">Cancel</WuModalClose>
-          <WuButton onClick={handleCreate} disabled={!formData.name.trim()}>
-            Create Project
-          </WuButton>
-        </WuModalFooter>
-      </WuModal>
-
-      {/* Archive confirmation */}
-      <ConfirmModal
-        open={archiveTarget !== null}
-        onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}
-        title="Archive project?"
-        description={`"${archiveTarget?.name}" will be archived and no longer accept new responses.`}
-        confirmLabel="Archive"
-        variant="critical"
-        onConfirm={handleArchive}
-      />
+      <AudienceFooter />
     </div>
   );
 }
