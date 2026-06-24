@@ -171,19 +171,11 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
         maxWidth="940px"
         maxHeight="584px"
         preventClickOutside
-        aria-labelledby="recon-modal-title"
+        aria-describedby={undefined}
       >
-        {/*
-          WuModalHeader wraps children in its own DialogTitle (<h2>) automatically,
-          satisfying Radix's a11y requirement. We must NOT add DialogPrimitive.Title
-          here — doing so creates a nested <h2> inside <h2>.
-          Padding is overridden via .recon-modal-header in globals.css.
-        */}
         <WuModalHeader className="recon-modal-header">
-          <div className="flex items-center gap-2">
-            <span className="wm-assignment-return text-lg text-[#1b87e6]" aria-hidden="true" />
-            <span className="font-semibold text-[#1a2340]">Reconcile</span>
-          </div>
+          <span className="wm-assignment-return text-lg text-[#1b87e6]" aria-hidden="true" />
+          Reconcile
         </WuModalHeader>
 
         {/* Scrollable body — no extra padding wrapper */}

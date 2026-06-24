@@ -88,13 +88,18 @@ function ReconciliationTimeline({
             {/* Spine */}
             <div className="flex flex-col items-center">
               <div
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
                   state === 'completed'
-                    ? 'border-[#1b87e6] bg-[#1b87e6] text-white'
+                    ? 'border-2 border-[#1b87e6] bg-[#1b87e6] text-white'
                     : state === 'upcoming'
-                      ? 'border-[#1b87e6] bg-white'
-                      : 'border-[#e0e4e8] bg-white text-[#c4cdd5]'
+                      ? 'bg-white'
+                      : 'border-2 border-[#e0e4e8] bg-white text-[#c4cdd5]'
                 }`}
+                style={
+                  state === 'upcoming'
+                    ? { border: '2px solid #1b87e6', background: '#ffffff' }
+                    : undefined
+                }
                 aria-label={
                   state === 'completed'
                     ? `${stage} — completed`
