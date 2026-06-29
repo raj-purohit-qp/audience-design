@@ -39,8 +39,8 @@ const ReconcileWizardModalInner = dynamic(
           <WuModal
             open={open}
             onOpenChange={onOpenChange}
-            maxWidth="940px"
-            maxHeight="584px"
+            maxWidth="960px"
+            maxHeight={step === 1 ? '760px' : '640px'}
             preventClickOutside
             aria-describedby={undefined}
           >
@@ -51,7 +51,9 @@ const ReconcileWizardModalInner = dynamic(
               </span>
             </WuModalHeader>
 
-            <WuModalContent className="p-0">
+            <WuModalContent
+              className={`recon-modal-content p-0 ${step === 1 ? 'recon-modal-content--step1' : 'recon-modal-content--scroll'}`}
+            >
               <ReconciliationWizard
                 meta={meta}
                 step={step}

@@ -8,56 +8,24 @@ import {
   MOCK_PENDING_RECONCILIATION_REQUEST,
   STATUS_CONFIG,
   type ReconciliationMeta,
+  type ReconciliationStatus,
 } from '@/data/mock-reconciliation';
 import { ReconciliationOverviewCards } from '@/components/reconciliation/ReconciliationOverviewCards';
 import { type Batch, type StepFooterConfig } from '@/components/reconciliation/ReconciliationWizard';
 import { ReconcileWizardModal } from '@/components/reconciliation/ReconcileWizardModal';
 import { ReconciliationDashboard } from '@/components/reconciliation/ReconciliationDashboard';
+import { DetailPageContent } from '@/components/ui/page-layout';
 
 const WuButton = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })), { ssr: false });
+const WuChip = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })), { ssr: false });
 
-/* ── Page header — mirrors ProjectDashboard header style ── */
-function ReconPageHeader({ meta, projectName }: { meta: ReconciliationMeta; projectName: string }) {
-  const cfg = STATUS_CONFIG[meta.status];
-  const reconStatusLabel = meta.status === 'not_submitted' ? 'Not reconciled' : cfg.label;
-  const reconStatusBg    = meta.status === 'not_submitted' ? '#f5f6f8' : cfg.bg;
-  const reconStatusFg    = meta.status === 'not_submitted' ? '#54606b' : cfg.fg;
-
+function ReconciliationStatusChip({ status }: { status: ReconciliationStatus }) {
+  const cfg = STATUS_CONFIG[status];
+  const label = status === 'not_submitted' ? 'Not reconciled' : cfg.label;
   return (
-    <header>
-      <div className="mx-auto flex max-w-[1320px] flex-wrap items-start justify-between gap-4 px-7 py-5">
-        <div className="space-y-2.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-[22px] font-normal leading-tight text-[#1a2340]">{projectName}</h1>
-            <span
-              className="inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium"
-              style={{ background: reconStatusBg, color: reconStatusFg, borderColor: 'transparent' }}
-            >
-              {reconStatusLabel}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-[13px] text-[#8c9baa]">
-            <span className="inline-flex items-center gap-1">
-              <span className="wm-event text-[15px]" aria-hidden="true" />
-              Closed {meta.closeDate}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="wm-schedule text-[15px]" aria-hidden="true" />
-              Deadline {meta.deadlineDate}
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 font-medium ${
-                meta.daysRemaining <= 7 ? 'text-[#d93025]' : 'text-[#b06d00]'
-              }`}
-            >
-              <span className="wm-timer text-[15px]" aria-hidden="true" />
-              {meta.daysRemaining} days remaining
-            </span>
-          </div>
-        </div>
-      </div>
-      <hr className="border-[#e0e4e8]" />
-    </header>
+    <WuChip size="sm" shape="rounded" color={cfg.color}>
+      {label}
+    </WuChip>
   );
 }
 
@@ -101,7 +69,7 @@ function EmptyReconState({ onStart }: { onStart: () => void }) {
 }
 
 /* ── Main tab ── */
-export function ReconciliationTab({ projectName }: { projectName: string }) {
+export function ReconciliationTab({ projectName: _projectName }: { projectName: string }) {
   const { showToast } = useWuShowToast();
 
   const [meta, setMeta] = useState<ReconciliationMeta>({
@@ -156,14 +124,14 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
   const footerProps = footerPropsByStep[step];
 
   return (
-    <div>
-      <ReconPageHeader meta={meta} projectName={projectName} />
-      <div className="mx-auto max-w-[1320px] px-7 py-6 pb-14">
-        <ReconciliationOverviewCards meta={meta} />
-        <div className="mt-8">
-          {!showDashboard && <EmptyReconState onStart={openModal} />}
-          {showDashboard && <ReconciliationDashboard meta={meta} />}
-        </div>
+    <DetailPageContent>
+      <div className="mb-5">
+        <ReconciliationStatusChip status={meta.status} />
+      </div>
+      <ReconciliationOverviewCards meta={meta} />
+      <div className="mt-8">
+        {!showDashboard && <EmptyReconState onStart={openModal} />}
+        {showDashboard && <ReconciliationDashboard meta={meta} />}
       </div>
 
       <ReconcileWizardModal
@@ -176,6 +144,6 @@ export function ReconciliationTab({ projectName }: { projectName: string }) {
         onConfirmChange={setConfirmed}
         footerProps={footerProps}
       />
-    </div>
+    </DetailPageContent>
   );
 }

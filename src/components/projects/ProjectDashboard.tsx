@@ -2,13 +2,10 @@
 
 import { useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import type { AudienceProjectDetail } from '@/data/audience-project-store';
 import { CollectionProgressSection } from '@/components/projects/CollectionProgressSection';
+import { MetricCard, MetricIconBadge } from '@/components/ui/MetricCard';
+import { DetailPageContent } from '@/components/ui/page-layout';
 
-const WuButton = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
-  { ssr: false }
-);
 const WuCard = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCard })),
   { ssr: false }
@@ -17,21 +14,14 @@ const WuCardHeader = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCardHeader })),
   { ssr: false }
 );
+const WuHeading = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuHeading })),
+  { ssr: false }
+);
 
 /* ─────────────────────────────────────────
    Shared primitives
 ───────────────────────────────────────── */
-
-function IconBadge({ icon, bg, fg, size = 28 }: { icon: string; bg: string; fg: string; size?: number }) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded ${bg} ${fg}`}
-      style={{ width: size, height: size }}
-    >
-      <span className={`${icon} text-[15px]`} aria-hidden="true" />
-    </span>
-  );
-}
 
 function Chip({ children, blue }: { children: ReactNode; blue?: boolean }) {
   return (
@@ -52,23 +42,6 @@ function FieldLabel({ children }: { children: ReactNode }) {
     <div className="mb-1.5 text-[11px] font-medium text-[#8c9baa]">
       {children}
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: AudienceProjectDetail['status'] }) {
-  const map: Record<AudienceProjectDetail['status'], string> = {
-    Draft:  'bg-[#f5f6f8]  text-[#54606b] border-[#e0e4e8]',
-    Live:   'bg-[#e8f5e9]  text-[#188038] border-transparent',
-    Paused: 'bg-[#fff8e1]  text-[#b06d00] border-transparent',
-    Closed: 'bg-[#fce8e6]  text-[#d93025] border-transparent',
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium ${map[status]}`}>
-      {status === 'Live' && (
-        <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#188038]" />
-      )}
-      {status}
-    </span>
   );
 }
 
@@ -98,35 +71,6 @@ function DeviationBadge({ realtime, assumed, unit }: { realtime: number; assumed
   );
 }
 
-/* ─────────────────────────────────────────
-   KPI card — single value (Draft)
-───────────────────────────────────────── */
-
-function KpiCard({ label, value, sub, icon, iconBg, iconFg }: {
-  label: string; value: string; sub?: string;
-  icon: string; iconBg: string; iconFg: string;
-}) {
-  const [hov, setHov] = useState(false);
-  return (
-    <WuCard
-      rounded
-      className={`flex h-full flex-col overflow-hidden p-0 transition-all duration-150 ${
-        hov ? 'border-[#1b87e6] shadow-md' : 'shadow-sm'
-      }`}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-    >
-      <WuCardHeader className="flex items-center gap-2 border-b border-[#eef0f3] px-4 py-2.5 text-xs font-medium text-[#8c9baa]">
-        <IconBadge icon={icon} bg={iconBg} fg={iconFg} />
-        {label}
-      </WuCardHeader>
-      <div className="flex flex-1 flex-col gap-0.5 px-4 py-3">
-        <p className="text-[24px] font-normal leading-tight text-[#1a2340]">{value}</p>
-        {sub && <p className="text-[11px] text-[#8c9baa]">{sub}</p>}
-      </div>
-    </WuCard>
-  );
-}
 
 /* ─────────────────────────────────────────
    KPI card — split left / right (Live)
@@ -155,8 +99,8 @@ function SplitKpiCard({ label, icon, iconBg, iconFg, leftLabel, leftValue, right
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
-      <WuCardHeader className="flex items-center gap-2 border-b border-[#eef0f3] px-4 py-2.5 text-xs font-medium text-[#8c9baa]">
-        <IconBadge icon={icon} bg={iconBg} fg={iconFg} />
+      <WuCardHeader className="flex items-center gap-2">
+        <MetricIconBadge icon={icon} bg={iconBg} fg={iconFg} />
         {label}
       </WuCardHeader>
       <div className="grid flex-1 grid-cols-2">
@@ -201,8 +145,8 @@ function TotalCostCard({ budget, cpi, spent, isLaunched }: {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
-      <WuCardHeader className="flex items-center gap-2 border-b border-[#eef0f3] px-4 py-2.5 text-xs font-medium text-[#8c9baa]">
-        <IconBadge icon="wm-account-balance-wallet" bg="bg-[#fce8e6]" fg="text-[#d93025]" />
+      <WuCardHeader className="flex items-center gap-2">
+        <MetricIconBadge icon="wm-account-balance-wallet" bg="bg-[#fce8e6]" fg="text-[#d93025]" />
         Total cost
       </WuCardHeader>
 
@@ -268,7 +212,7 @@ function CriteriaCard({ title, icon, iconBg, iconFg, children }: {
         onKeyDown={(e) => e.key === 'Enter' && setOpen((v) => !v)}
       >
         <span className="flex items-center gap-2.5">
-          <IconBadge icon={icon} bg={iconBg} fg={iconFg} />
+          <MetricIconBadge icon={icon} bg={iconBg} fg={iconFg} />
           <span className="text-[15px] font-medium text-[#1a2340]">{title}</span>
         </span>
         <span
@@ -286,97 +230,17 @@ function CriteriaCard({ title, icon, iconBg, iconFg, children }: {
 ───────────────────────────────────────── */
 
 interface ProjectDashboardProps {
-  project: AudienceProjectDetail;
-  onEdit: () => void;
-  onLaunch: () => void;
-  onPause: () => void;
-  onResume: () => void;
-  onClose: () => void;
+  project: import('@/data/audience-project-store').SingleCountryProjectDetail;
 }
 
-export function ProjectDashboard({ project, onEdit, onLaunch, onPause, onResume, onClose }: ProjectDashboardProps) {
-  const isDraft      = project.status === 'Draft';
+export function ProjectDashboard({ project }: ProjectDashboardProps) {
   const isLaunched   = project.status !== 'Draft';
   const showProgress = isLaunched && project.status !== 'Closed';
   const spent        = project.collected * project.costPerInterview;
   const remaining    = Math.max(0, project.responses - project.collected);
 
-  const metaItems = isDraft
-    ? [
-        { icon: 'wm-tag',          text: `#${project.projectId}` },
-        { icon: 'wm-person',       text: project.client },
-        { icon: 'wm-event',        text: `Due ${project.dueDate}` },
-      ]
-    : [
-        { icon: 'wm-tag',          text: `#${project.projectId}` },
-        { icon: 'wm-person',       text: project.client },
-        { icon: 'wm-rocket-launch', text: `Launched ${project.launchDate ?? '—'}` },
-        { icon: 'wm-event',        text: `Due ${project.dueDate}` },
-      ];
-
   return (
-    <>
-      {/* ── Project header ── */}
-      <header>
-        <div className="mx-auto flex max-w-[1320px] flex-wrap items-start justify-between gap-4 px-7 py-5">
-          <div className="space-y-2.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-[22px] font-normal leading-tight text-[#1a2340]">{project.name}</h1>
-              <StatusBadge status={project.status} />
-              <span className="rounded-full border border-[#e0e4e8] bg-[#f5f6f8] px-3 py-0.5 text-xs text-[#54606b]">
-                {project.scopeTag}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-[13px] text-[#8c9baa]">
-              {metaItems.map((item) => (
-                <span key={item.text} className="inline-flex items-center gap-1">
-                  <span className={`${item.icon} text-[15px]`} aria-hidden="true" />
-                  {item.text}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            {isDraft && (
-              <>
-                <WuButton variant="outline" color="primary" Icon={<span className="wm-edit" />} iconPosition="left" onClick={onEdit}>
-                  Edit
-                </WuButton>
-                <WuButton Icon={<span className="wm-rocket-launch" />} iconPosition="left" onClick={onLaunch}>
-                  Launch survey
-                </WuButton>
-              </>
-            )}
-            {project.status === 'Closed' && (
-              <WuButton variant="outline" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
-                Closed
-              </WuButton>
-            )}
-            {project.status === 'Live' && (
-              <WuButton variant="outline" color="primary" Icon={<span className="wm-pause" />} iconPosition="left" onClick={onPause}>
-                Pause survey
-              </WuButton>
-            )}
-            {project.status === 'Paused' && (
-              <WuButton variant="outline" color="primary" Icon={<span className="wm-play-arrow" />} iconPosition="left" onClick={onResume}>
-                Resume survey
-              </WuButton>
-            )}
-            {(project.status === 'Live' || project.status === 'Paused') && (
-              <WuButton variant="outline" color="error" Icon={<span className="wm-cancel" />} iconPosition="left" onClick={onClose}>
-                Close survey
-              </WuButton>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <hr className="border-0 border-t border-[#e0e4e8]" />
-
-      {/* ── Body ── */}
-      <div className="mx-auto max-w-[1320px] px-7 py-6 pb-14">
-
+    <DetailPageContent>
         {/* Metric cards */}
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {isLaunched ? (
@@ -387,10 +251,11 @@ export function ProjectDashboard({ project, onEdit, onLaunch, onPause, onResume,
               rightLabel="Required"  rightValue={project.responses.toLocaleString()}
             />
           ) : (
-            <KpiCard
+            <MetricCard
               label="Responses"
               value={project.responses.toLocaleString()} sub="Target"
               icon="wm-flag" iconBg="bg-[#f5f6f8]" iconFg="text-[#54606b]"
+              hoverable
             />
           )}
 
@@ -405,10 +270,11 @@ export function ProjectDashboard({ project, onEdit, onLaunch, onPause, onResume,
                 : undefined}
             />
           ) : (
-            <KpiCard
+            <MetricCard
               label="Incidence rate"
               value={`${project.incidenceRate}%`} sub="Assumed IR"
               icon="wm-tune" iconBg="bg-[#e8f0fe]" iconFg="text-[#1b87e6]"
+              hoverable
             />
           )}
 
@@ -423,10 +289,11 @@ export function ProjectDashboard({ project, onEdit, onLaunch, onPause, onResume,
                 : undefined}
             />
           ) : (
-            <KpiCard
+            <MetricCard
               label="Length of interview"
               value={`${project.surveyLengthMinutes} min`} sub="Assumed LOI"
               icon="wm-schedule" iconBg="bg-[#fff8e1]" iconFg="text-[#b06d00]"
+              hoverable
             />
           )}
 
@@ -451,9 +318,9 @@ export function ProjectDashboard({ project, onEdit, onLaunch, onPause, onResume,
 
         {/* Launch criteria */}
         <section>
-          <h2 className="mb-4 text-[17px] font-medium text-[#1a2340]">
+          <WuHeading size="md" className="mb-4">
             Launch criteria &amp; audience configuration
-          </h2>
+          </WuHeading>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
 
             <CriteriaCard title="Geography" icon="wm-public" iconBg="bg-[#e8f0fe]" iconFg="text-[#1b87e6]">
@@ -509,7 +376,6 @@ export function ProjectDashboard({ project, onEdit, onLaunch, onPause, onResume,
 
           </div>
         </section>
-      </div>
-    </>
+    </DetailPageContent>
   );
 }

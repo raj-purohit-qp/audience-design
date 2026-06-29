@@ -12,6 +12,7 @@ const WuButton     = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((
 const WuCard       = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCard })),       { ssr: false });
 const WuCardHeader = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCardHeader })), { ssr: false });
 const WuChip       = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })),       { ssr: false });
+const WuInput      = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuInput })),      { ssr: false });
 const WuSelect     = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSelect })),     { ssr: false });
 
 /* ── Types ── */
@@ -180,8 +181,46 @@ function downloadReasonCodes() {
   URL.revokeObjectURL(url);
 }
 
+/* ── Compact batch row for sidebar list ── */
+function CompactBatchItem({ batch, onRemove }: { batch: Batch; onRemove: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-[#e0e4e8] bg-white px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="wm-label shrink-0 text-base text-[#1b87e6]" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-[#1a2340]">{reasonLabel(batch.reason)}</p>
+          <p className="text-[11px] text-[#8c9baa]">
+            {batch.valid} valid · {batch.invalid} invalid · {batch.ids.length} uploaded
+          </p>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <WuChip size="sm" color="success">{batch.valid} IDs</WuChip>
+        <button
+          type="button"
+          aria-label={`Remove batch: ${reasonLabel(batch.reason)}`}
+          onClick={onRemove}
+          className="flex h-7 w-7 items-center justify-center rounded hover:bg-[#fce8e6]"
+        >
+          <span className="wm-delete text-base text-[#d93025]" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Manual entry: Add-batch form ── */
-function AddBatchForm({ onAdd, maxRemaining }: { onAdd: (batch: Batch) => void; maxRemaining: number }) {
+function AddBatchForm({
+  onAdd,
+  maxRemaining,
+  batches,
+  onRemoveBatch,
+}: {
+  onAdd: (batch: Batch) => void;
+  maxRemaining: number;
+  batches: Batch[];
+  onRemoveBatch: (id: string) => void;
+}) {
   const [text, setText]     = useState('');
   const [reason, setReason] = useState<RejectionReasonValue | ''>('');
 
@@ -198,34 +237,34 @@ function AddBatchForm({ onAdd, maxRemaining }: { onAdd: (batch: Batch) => void; 
   }
 
   return (
-    <WuCard rounded className="overflow-hidden p-0 shadow-sm">
-      <WuCardHeader className="border-b border-[#eef0f3] px-4 py-2.5 text-sm font-medium text-[#1a2340]">
-        Add a batch of IDs
-      </WuCardHeader>
-      <div className="grid grid-cols-1 gap-4 px-4 py-4 xl:grid-cols-2">
-        {/* Left — paste box */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-[#8c9baa]" htmlFor="batch-ids">
-            Paste response IDs (one per line)
-          </label>
-          <textarea
-            id="batch-ids"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-                  rows={6}
-            placeholder={'R-10021\nR-10034\nR-10047'}
-            className="w-full resize-none rounded-md border-2 border-[#c4cdd5] bg-white px-3 py-2.5 font-mono text-sm text-[#1a2340] placeholder:text-[#c4cdd5] focus:border-[#1b87e6] focus:outline-none"
-            aria-label="Response IDs for this batch"
-          />
-          <p className={`text-xs ${overLimit ? 'font-medium text-[#d93025]' : 'text-[#8c9baa]'}`}>
-            {rawIds.length} IDs entered{overLimit ? ` — max ${maxRemaining} remaining` : ''}
-          </p>
-        </div>
+    <div className="recon-step1-manual-row grid grid-cols-[auto_1fr] items-stretch gap-4">
+      {/* Box 1 — manual entry */}
+      <WuCard rounded className="flex h-full w-[248px] shrink-0 flex-col p-0 shadow-sm">
+        <WuCardHeader className="border-b border-[#eef0f3] px-4 py-2.5 text-sm font-medium text-[#1a2340]">
+          Manual entry
+        </WuCardHeader>
+        <div className="flex flex-1 flex-col gap-2.5 px-4 py-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-[#8c9baa]" htmlFor="batch-ids">
+              Paste response IDs (one per line)
+            </label>
+            <textarea
+              id="batch-ids"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={10}
+              placeholder={'R-10021\nR-10034\nR-10047\nR-10058\nR-10063\nR-10071\nR-10089\nR-10095\nR-10102\nR-10118'}
+              className="recon-id-input resize-none rounded-md border-2 border-[#c4cdd5] bg-white px-2 py-1.5 font-mono text-sm leading-5 text-[#1a2340] placeholder:text-[#c4cdd5] focus:border-[#1b87e6] focus:outline-none"
+              aria-label="Response IDs for this batch"
+              spellCheck={false}
+            />
+            <p className={`text-xs ${overLimit ? 'font-medium text-[#d93025]' : 'text-[#8c9baa]'}`}>
+              {rawIds.length} IDs entered{overLimit ? ` — max ${maxRemaining} remaining` : ''}
+            </p>
+          </div>
 
-        {/* Right — reason + guidance + action */}
-        <div className="flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-xs font-medium text-[#8c9baa]">
+            <p className="mb-1 text-xs font-medium text-[#8c9baa]">
               Rejection reason for this batch
             </p>
             <WuSelect
@@ -241,15 +280,12 @@ function AddBatchForm({ onAdd, maxRemaining }: { onAdd: (batch: Batch) => void; 
               className="w-full"
             />
             {reason !== '' && (
-              <p className="mt-1.5 text-xs text-[#8c9baa]">
+              <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[#8c9baa]">
                 {REJECTION_REASONS.find((r) => r.value === reason)?.description}
               </p>
             )}
           </div>
-          <div className="rounded-md border border-[#e0e4e8] bg-[#f9fafb] px-3 py-2.5 text-xs text-[#54606b]">
-            <p className="font-medium text-[#1a2340]">How batching works</p>
-            <p className="mt-1">Enter IDs that share the same rejection reason, then click <strong>Add batch</strong>. Repeat for each reason group.</p>
-          </div>
+
           <WuButton
             variant="outline"
             color="primary"
@@ -257,12 +293,50 @@ function AddBatchForm({ onAdd, maxRemaining }: { onAdd: (batch: Batch) => void; 
             Icon={<span className="wm-add" aria-hidden="true" />}
             iconPosition="left"
             onClick={handleAdd}
+            className="w-full"
           >
             Add batch
           </WuButton>
         </div>
-      </div>
-    </WuCard>
+      </WuCard>
+
+      {/* Box 2 — batches added */}
+      <WuCard rounded className="flex h-full min-w-0 flex-1 flex-col p-0 shadow-sm">
+        <WuCardHeader className="flex items-center justify-between border-b border-[#eef0f3] px-4 py-2.5">
+          <span className="text-sm font-medium text-[#1a2340]">
+            {batches.length === 0
+              ? 'Batches added'
+              : `${batches.length} ${batches.length === 1 ? 'batch' : 'batches'} added`}
+          </span>
+          {batches.length > 0 && (
+            <span className="text-xs text-[#8c9baa]">
+              {batches.reduce((s, b) => s + b.valid, 0)} valid IDs total
+            </span>
+          )}
+        </WuCardHeader>
+        <div className="flex flex-1 flex-col px-4 py-3">
+          {batches.length === 0 ? (
+            <div className="rounded-md border border-dashed border-[#e0e4e8] bg-[#f9fafb] px-4 py-5 text-center">
+              <span className="wm-inbox mb-1.5 inline-block text-[24px] text-[#c4cdd5]" aria-hidden="true" />
+              <p className="text-sm text-[#54606b]">No batches added yet</p>
+              <p className="mt-0.5 text-xs text-[#8c9baa]">
+                Enter IDs, select a rejection reason, then click Add batch.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {batches.map((b) => (
+                <CompactBatchItem
+                  key={b.id}
+                  batch={b}
+                  onRemove={() => onRemoveBatch(b.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </WuCard>
+    </div>
   );
 }
 
@@ -293,117 +367,121 @@ function CsvUploadSection() {
       <WuCardHeader className="border-b border-[#eef0f3] px-4 py-2.5 text-sm font-medium text-[#1a2340]">
         Upload a CSV
       </WuCardHeader>
-      <div className="grid grid-cols-1 gap-0 xl:grid-cols-2" style={{ height: 278, overflow: 'hidden' }}>
+      <div className="recon-upload-csv-body">
         {/* Left — upload card (WickUI Media Library/Card spec) */}
-        <div className="flex flex-col items-center gap-3 border-r border-[#eef0f3] px-4 py-5">
-          {/* Card: 160×160, white, 2px solid #D8D8D8, border-radius 10px */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => { setDragging(false); setHovering(false); }}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            onMouseEnter={() => setHovering(true)}
-            onMouseLeave={() => setHovering(false)}
-            role="button"
-            tabIndex={0}
-            aria-label="Click or drag to upload CSV"
-            onKeyDown={(e) => e.key === 'Enter' && fileRef.current?.click()}
-            style={{
-              boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '16px',
-              gap: '6px',
-              width: '120px',
-              height: '120px',
-              background: dragging ? '#e8f0fe' : hovering ? '#f0f7ff' : '#FFFFFF',
-              border: `2px solid ${dragging || hovering ? '#1b87e6' : '#D8D8D8'}`,
-              borderRadius: '10px',
-              cursor: 'pointer',
-              transition: 'border-color 0.15s, background 0.15s',
-            }}
-          >
-            <span
-              className={`wm-cloud-upload text-[36px] ${dragging || hovering ? 'text-[#1b87e6]' : 'text-[#8c9baa]'}`}
-              aria-hidden="true"
-            />
-            {fileName ? (
-              <p className="text-center text-[11px] font-medium text-[#1a2340]">{fileName}</p>
-            ) : (
-              <p className="text-center text-[11px] text-[#8c9baa]">Drag & drop or click</p>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv"
-              className="sr-only"
-              aria-label="Upload CSV file"
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                const f = e.target.files?.[0];
-                if (f) setFileName(f.name);
-              }}
-            />
-          </div>
-
-          {/* Actions below card */}
-          <div className="flex items-center gap-1">
-            <WuButton
-              variant="link"
-              size="sm"
-              Icon={<span className="wm-download" aria-hidden="true" />}
-              iconPosition="left"
-              onClick={() => {
-                const csv = 'ResponseID,ReasonCode\nR-10001,QP-101\nR-10002,QP-103\n';
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                a.href = url; a.download = 'reconciliation-template.csv'; a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              Download template
-            </WuButton>
-            <span className="text-[#d8d8d8]">|</span>
-            <WuButton
-              variant="link"
-              size="sm"
-              Icon={<span className="wm-folder-open" aria-hidden="true" />}
-              iconPosition="left"
+        <div className="recon-csv-upload-panel border-r border-[#eef0f3]">
+          <div className="flex w-max max-w-full flex-col items-center gap-3 px-4 text-center">
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => { setDragging(false); setHovering(false); }}
+              onDrop={handleDrop}
               onClick={() => fileRef.current?.click()}
+              onMouseEnter={() => setHovering(true)}
+              onMouseLeave={() => setHovering(false)}
+              role="button"
+              tabIndex={0}
+              aria-label="Click or drag to upload CSV"
+              onKeyDown={(e) => e.key === 'Enter' && fileRef.current?.click()}
+              style={{
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '16px',
+                gap: '6px',
+                width: '120px',
+                height: '120px',
+                background: dragging ? '#e8f0fe' : hovering ? '#f0f7ff' : '#FFFFFF',
+                border: `2px solid ${dragging || hovering ? '#1b87e6' : '#D8D8D8'}`,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
             >
-              Browse file
-            </WuButton>
+              <span
+                className={`wm-cloud-upload text-[36px] ${dragging || hovering ? 'text-[#1b87e6]' : 'text-[#8c9baa]'}`}
+                aria-hidden="true"
+              />
+              {fileName ? (
+                <p className="text-center text-[11px] font-medium text-[#1a2340]">{fileName}</p>
+              ) : (
+                <p className="text-center text-[11px] text-[#8c9baa]">Drag & drop or click</p>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv"
+                className="sr-only"
+                aria-label="Upload CSV file"
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  const f = e.target.files?.[0];
+                  if (f) setFileName(f.name);
+                }}
+              />
+            </div>
+
+            <div className="inline-flex flex-wrap items-center justify-center gap-1">
+              <WuButton
+                variant="link"
+                size="sm"
+                Icon={<span className="wm-download" aria-hidden="true" />}
+                iconPosition="left"
+                onClick={() => {
+                  const csv = 'ResponseID,ReasonCode\nR-10001,QP-101\nR-10002,QP-103\n';
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url  = URL.createObjectURL(blob);
+                  const a    = document.createElement('a');
+                  a.href = url; a.download = 'reconciliation-template.csv'; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Download template
+              </WuButton>
+              <span className="text-[#d8d8d8]">|</span>
+              <WuButton
+                variant="link"
+                size="sm"
+                Icon={<span className="wm-folder-open" aria-hidden="true" />}
+                iconPosition="left"
+                onClick={() => fileRef.current?.click()}
+              >
+                Browse file
+              </WuButton>
+            </div>
+            <p className="text-[11px] text-[#c4cdd5]">CSV only · max 500 IDs · max 5 MB</p>
           </div>
-          <p className="text-center text-[11px] text-[#c4cdd5]">CSV only · max 500 IDs · max 5 MB</p>
         </div>
 
         {/* Right — searchable reason codes reference */}
-        <div className="flex flex-col">
-          <div className="border-b border-[#eef0f3] px-4 py-2.5">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-medium text-[#1a2340]">Reason codes reference</p>
-              <WuButton
-                variant="outline"
-                color="primary"
-                Icon={<span className="wm-download text-sm" aria-hidden="true" />}
-                iconPosition="left"
-                onClick={downloadReasonCodes}
-              >
-                Reason codes
-              </WuButton>
-            </div>
-            <input
-              type="search"
-              placeholder="Search codes or reasons…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border border-[#e0e4e8] bg-white px-3 py-1.5 text-xs text-[#1a2340] placeholder:text-[#c4cdd5] focus:border-[#1b87e6] focus:outline-none"
-              aria-label="Search reason codes"
-            />
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-[#eef0f3] px-4 py-2.5">
+            <p className="text-xs font-medium text-[#1a2340]">Reason codes reference</p>
+            <WuButton
+              variant="outline"
+              color="primary"
+              Icon={<span className="wm-download text-sm" aria-hidden="true" />}
+              iconPosition="left"
+              onClick={downloadReasonCodes}
+            >
+              Reason codes
+            </WuButton>
           </div>
-          <div className="overflow-y-auto" style={{ maxHeight: 220 }}>
+          <div className="border-b border-[#eef0f3] px-3 py-2">
+            <div className="w-1/2">
+              <WuInput
+                variant="flat"
+                placeholder="Search codes or reasons…"
+                Icon={<span className="wm-search" aria-hidden="true" />}
+                iconPosition="left"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 w-full bg-[#F5F5F5]"
+                aria-label="Search reason codes"
+              />
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <table className="w-full text-xs" aria-label="Reason codes">
               <thead className="sticky top-0 bg-[#f5f6f8]">
                 <tr>
@@ -522,7 +600,7 @@ function Step1Upload({
   const remaining  = Math.max(0, maxIds - totalValid);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* ── Header row: title + switcher + download button ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -540,19 +618,12 @@ function Step1Upload({
 
       {/* ── Mode content ── */}
       {mode === 'manual' ? (
-        <>
-          <AddBatchForm onAdd={(b) => onBatchesChange([...batches, b])} maxRemaining={remaining} />
-          {batches.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-[#1a2340]">
-                {batches.length} {batches.length === 1 ? 'batch' : 'batches'} added
-              </p>
-              {batches.map((b) => (
-                <BatchCard key={b.id} batch={b} onRemove={() => onBatchesChange(batches.filter((x) => x.id !== b.id))} />
-              ))}
-            </div>
-          )}
-        </>
+        <AddBatchForm
+          onAdd={(b) => onBatchesChange([...batches, b])}
+          maxRemaining={remaining}
+          batches={batches}
+          onRemoveBatch={(id) => onBatchesChange(batches.filter((x) => x.id !== id))}
+        />
       ) : (
         <CsvUploadSection />
       )}
@@ -639,13 +710,13 @@ function Step3Confirm({
 
   return (
     <div>
-      <h2 className="mb-1 text-lg font-medium text-[#1a2340]">Confirm submission</h2>
-      <p className="mb-5 text-sm text-[#8c9baa]">
+      <h2 className="mb-1 text-base font-medium text-[#1a2340]">Confirm submission</h2>
+      <p className="mb-3 text-sm text-[#8c9baa]">
         Review the reconciliation impact before submitting your request.
       </p>
 
       {/* Impact cards */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           { label: 'Responses submitted',      value: idCount.toString(),               sub: 'Valid IDs',               color: 'text-[#1a2340]' },
           { label: 'Estimated credit',          value: `$${estimatedCredit.toFixed(2)}`, sub: `${idCount} × $${meta.cpi.toFixed(2)} CPI`, color: 'text-[#188038]' },
@@ -653,11 +724,11 @@ function Step3Confirm({
           { label: 'Est. cost after approval',  value: `$${afterApproval.toFixed(2)}`,  sub: 'If all approved',          color: 'text-[#1b87e6]' },
         ].map(({ label, value, sub, color }) => (
           <WuCard key={label} rounded className="p-0 shadow-sm">
-            <WuCardHeader className="border-b border-[#eef0f3] px-4 py-2 text-[11px] font-medium text-[#8c9baa]">
+            <WuCardHeader className="border-b border-[#eef0f3] px-3 py-1.5 text-[11px] font-medium text-[#8c9baa]">
               {label}
             </WuCardHeader>
-            <div className="px-4 py-3">
-              <p className={`text-[22px] font-normal leading-tight ${color}`}>{value}</p>
+            <div className="px-3 py-2">
+              <p className={`text-lg font-normal leading-tight ${color}`}>{value}</p>
               <p className="mt-0.5 text-[11px] text-[#8c9baa]">{sub}</p>
             </div>
           </WuCard>
@@ -665,13 +736,13 @@ function Step3Confirm({
       </div>
 
       {/* Batch summary */}
-      <WuCard rounded className="mb-5 overflow-hidden p-0 shadow-sm">
-        <WuCardHeader className="border-b border-[#eef0f3] px-4 py-2.5 text-sm font-medium text-[#1a2340]">
+      <WuCard rounded className="mb-3 overflow-hidden p-0 shadow-sm">
+        <WuCardHeader className="border-b border-[#eef0f3] px-4 py-2 text-sm font-medium text-[#1a2340]">
           Submission breakdown by reason
         </WuCardHeader>
-        <div className="divide-y divide-[#eef0f3]">
+        <div className="max-h-[120px] divide-y divide-[#eef0f3] overflow-y-auto">
           {batches.map((b) => (
-            <div key={b.id} className="flex items-center justify-between px-4 py-2.5">
+            <div key={b.id} className="flex items-center justify-between px-4 py-2">
               <span className="text-sm text-[#1a2340]">{reasonLabel(b.reason)}</span>
               <WuChip size="sm">{b.valid} IDs</WuChip>
             </div>
@@ -680,15 +751,15 @@ function Step3Confirm({
       </WuCard>
 
       {/* Disclaimer */}
-      <div className="mb-5 flex items-start gap-2 rounded-md border border-[#e0e4e8] bg-[#f9fafb] px-4 py-3">
+      <div className="mb-3 flex items-start gap-2 rounded-md border border-[#e0e4e8] bg-[#f9fafb] px-3 py-2.5">
         <span className="wm-info mt-0.5 shrink-0 text-base text-[#8c9baa]" aria-hidden="true" />
-        <p className="text-xs text-[#54606b]">
+        <p className="text-xs leading-snug text-[#54606b]">
           Final credit amount may vary depending on approval results. Credits are applied to your wallet within 2 business days of approval.
         </p>
       </div>
 
       {/* Confirmation checkbox */}
-      <label className="flex cursor-pointer items-start gap-3 rounded-md border border-[#e0e4e8] bg-white px-4 py-3.5">
+      <label className="flex cursor-pointer items-start gap-3 rounded-md border border-[#e0e4e8] bg-white px-3 py-3">
         <input
           type="checkbox"
           onChange={(e) => onConfirmChange(e.target.checked)}
@@ -722,7 +793,7 @@ export function ReconciliationWizard({
   onConfirmChange: (v: boolean) => void;
 }) {
   return (
-    <div className="overflow-y-auto px-6 py-4" style={{ minHeight: 380 }}>
+    <div className={`recon-wizard-body ${step === 1 ? 'recon-wizard-body--step1' : ''}`}>
       {step === 1 && (
         <Step1Upload
           batches={batches}

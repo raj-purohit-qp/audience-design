@@ -15,17 +15,13 @@ const WuCardHeader = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((
 const WuChip       = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })),       { ssr: false });
 const WuDrawer     = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuDrawer })),     { ssr: false });
 
-/* ── Status badge ── */
+/* ── Status chip ── */
 function StatusBadge({ status }: { status: ReconciliationRequest['status'] }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span
-      className="inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-medium"
-      style={{ background: cfg.bg, color: cfg.fg, borderColor: 'transparent' }}
-      aria-label={`Status: ${cfg.label}`}
-    >
+    <WuChip size="sm" shape="rounded" color={cfg.color} aria-label={`Status: ${cfg.label}`}>
       {cfg.label}
-    </span>
+    </WuChip>
   );
 }
 
@@ -277,7 +273,7 @@ function RequestHistoryTable({
 }) {
   return (
     <WuCard rounded className="overflow-hidden p-0 shadow-sm">
-      <WuCardHeader className="border-b border-[#eef0f3] px-4 py-3 text-sm font-medium text-[#1a2340]">
+      <WuCardHeader>
         Request history
       </WuCardHeader>
       <div className="overflow-x-auto">
@@ -321,7 +317,7 @@ export function ReconciliationDashboard({ meta }: { meta: ReconciliationMeta }) 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Left: Timeline */}
         <WuCard rounded className="overflow-hidden p-0 shadow-sm">
-          <WuCardHeader className="border-b border-[#eef0f3] px-4 py-3 text-sm font-medium text-[#1a2340]">
+          <WuCardHeader>
             Reconciliation timeline
           </WuCardHeader>
           <div className="px-5 py-5">

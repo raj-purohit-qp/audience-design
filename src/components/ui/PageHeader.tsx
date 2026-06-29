@@ -1,17 +1,31 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import dynamic from 'next/dynamic';
+
+const WuHeading = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuHeading })),
+  { ssr: false },
+);
+const WuSubtext = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSubtext })),
+  { ssr: false },
+);
+
 interface PageHeaderProps {
   title: string;
   description?: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
 }
 
 export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between mb-6">
+    <div className="mb-6 flex items-start justify-between">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-        {description && <p className="text-sm text-gray-500">{description}</p>}
+        <WuHeading size="lg">{title}</WuHeading>
+        {description && <WuSubtext size="sm">{description}</WuSubtext>}
       </div>
-      {action && <div className="flex items-center gap-2 shrink-0">{action}</div>}
+      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </div>
   );
 }

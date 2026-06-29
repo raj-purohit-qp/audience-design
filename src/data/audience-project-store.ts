@@ -1,5 +1,15 @@
 import type { CountryOption } from './mock-project-create';
 import { calculateEstimate, formatEstimateDate } from './mock-project-create';
+import type {
+  CountryDefinition,
+  CountryPlan,
+  GlobalCriterion,
+  MultiCountryProjectDetail,
+} from './mock-multi-country';
+import {
+  MOCK_MULTI_COUNTRY_PARENT,
+  slugifyChildName,
+} from './mock-multi-country';
 
 export type AudienceProjectDetailStatus = 'Draft' | 'Live' | 'Paused' | 'Closed';
 
@@ -10,10 +20,13 @@ export interface AudienceProjectDemographics {
   income: string[];
 }
 
-export interface AudienceProjectDetail {
+export type AudienceProjectDetail = SingleCountryProjectDetail | MultiCountryProjectDetail;
+
+export interface SingleCountryProjectDetail {
   id: string;
   projectId: string;
   name: string;
+  isMultiCountry?: false;
   status: AudienceProjectDetailStatus;
   scopeTag: string;
   client: string;
@@ -36,6 +49,15 @@ export interface AudienceProjectDetail {
   qualificationNote: string;
 }
 
+export function isMultiCountryProject(
+  project: AudienceProjectDetail,
+): project is MultiCountryProjectDetail {
+  return project.isMultiCountry === true;
+}
+
+// Re-export for convenience
+export type { MultiCountryProjectDetail };
+
 export const DEFAULT_DEMOGRAPHICS: AudienceProjectDemographics = {
   ageGroups: ['18–24', '25–34', '35–44', '45–54', '55–65'],
   gender: ['Male', 'Female', 'Non-binary / other'],
@@ -43,7 +65,7 @@ export const DEFAULT_DEMOGRAPHICS: AudienceProjectDemographics = {
   income: ['Under $35K', '$35K–$75K', '$75K–$150K', 'Over $150K'],
 };
 
-export const MOCK_PROJECT_DETAIL: AudienceProjectDetail = {
+export const MOCK_PROJECT_DETAIL: SingleCountryProjectDetail = {
   id: 'demo-project',
   projectId: 'QP-M6548',
   name: 'US Customer Experience Study Q2 2026',
@@ -87,7 +109,7 @@ function generateProjectSlugId(): string {
   return `proj-${Date.now()}`;
 }
 
-export function buildAudienceProjectDetail(payload: CreateProjectPayload): AudienceProjectDetail {
+export function buildAudienceProjectDetail(payload: CreateProjectPayload): SingleCountryProjectDetail {
   const estimate = calculateEstimate(
     payload.responses,
     payload.incidenceRate,
@@ -123,23 +145,100 @@ export function buildAudienceProjectDetail(payload: CreateProjectPayload): Audie
 }
 
 const STORAGE_PREFIX = 'audience-project:';
+const MULTI_STORAGE_PREFIX = 'multi-country-project:';
 
-export function saveAudienceProject(project: AudienceProjectDetail): void {
+export interface CreateMultiCountryPayload {
+  name: string;
+  countries: CountryDefinition[];
+  plans: CountryPlan[];
+  globalCriteria: GlobalCriterion[];
+  incidenceRate: number;
+  surveyLengthMinutes: number;
+  completionDate?: Date;
+}
+
+export function buildMultiCountryProject(payload: CreateMultiCountryPayload): MultiCountryProjectDetail {
+  const name =
+    payload.name.trim() ||
+    `Multi-Country Study ${new Date().getFullYear()}`;
+  const parentId = generateProjectSlugId();
+
+  return {
+    id: parentId,
+    projectId: generateProjectId(),
+    name,
+    isMultiCountry: true,
+    status: 'Draft',
+    client: 'Horizon Consumer Brands',
+    dueDate: formatEstimateDate(payload.completionDate) || 'Aug 15, 2026',
+    incidenceRate: payload.incidenceRate,
+    surveyLengthMinutes: payload.surveyLengthMinutes,
+    globalCriteria: payload.globalCriteria,
+    countries: payload.plans,
+    children: payload.plans.map((plan) => ({
+      id: `${parentId}-${plan.countryCode.toLowerCase()}`,
+      parentId,
+      countryCode: plan.countryCode,
+      name: slugifyChildName(name, plan.countryCode),
+      projectId: `${generateProjectId()}-${plan.countryCode}`,
+      status: 'Draft' as const,
+      responses: plan.responses,
+      collected: 0,
+      cpi: plan.cpi,
+      totalCost: plan.estimatedCost,
+      feasibility: plan.feasibility,
+      audienceSummary: payload.globalCriteria.slice(0, 3).map((c) => c.label).join(', '),
+    })),
+  };
+}
+
+export function saveAudienceProject(project: SingleCountryProjectDetail): void {
   if (typeof window === 'undefined') return;
   sessionStorage.setItem(`${STORAGE_PREFIX}${project.id}`, JSON.stringify(project));
 }
 
-export function getAudienceProject(id: string): AudienceProjectDetail | null {
+export function saveMultiCountryProject(project: MultiCountryProjectDetail): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(`${MULTI_STORAGE_PREFIX}${project.id}`, JSON.stringify(project));
+}
+
+export function getAudienceProject(id: string): SingleCountryProjectDetail | null {
   if (typeof window === 'undefined') return null;
   const raw = sessionStorage.getItem(`${STORAGE_PREFIX}${id}`);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AudienceProjectDetail;
+    return JSON.parse(raw) as SingleCountryProjectDetail;
   } catch {
     return null;
   }
 }
 
-export function resolveAudienceProject(id: string): AudienceProjectDetail {
+export function getMultiCountryProject(id: string): MultiCountryProjectDetail | null {
+  if (typeof window === 'undefined') return null;
+  const raw = sessionStorage.getItem(`${MULTI_STORAGE_PREFIX}${id}`);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as MultiCountryProjectDetail;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
   return getAudienceProject(id) ?? { ...MOCK_PROJECT_DETAIL, id };
+}
+
+export function resolveProject(id: string): AudienceProjectDetail {
+  const multi = getMultiCountryProject(id);
+  if (multi) return multi;
+  if (id === MOCK_MULTI_COUNTRY_PARENT.id) return MOCK_MULTI_COUNTRY_PARENT;
+  return resolveAudienceProject(id);
+}
+
+export function saveProject(project: AudienceProjectDetail): void {
+  if (isMultiCountryProject(project)) {
+    saveMultiCountryProject(project);
+  } else {
+    saveAudienceProject(project);
+  }
 }

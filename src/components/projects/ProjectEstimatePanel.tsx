@@ -17,6 +17,7 @@ interface ProjectEstimatePanelProps {
   estimate: ProjectEstimate;
   completionDate: Date | undefined;
   onCreateProject: () => void;
+  countryCount?: number;
 }
 
 export function ProjectEstimatePanel({
@@ -24,6 +25,7 @@ export function ProjectEstimatePanel({
   estimate,
   completionDate,
   onCreateProject,
+  countryCount,
 }: ProjectEstimatePanelProps) {
   const isFeasible = estimate.feasibility === 'high';
 
@@ -35,6 +37,12 @@ export function ProjectEstimatePanel({
         </div>
 
         <dl className="space-y-4 px-5 py-4">
+          {countryCount !== undefined && countryCount > 1 && (
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-sm text-gray-600">Countries</dt>
+              <dd className="text-sm font-medium text-gray-900">{countryCount}</dd>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-4">
             <dt className="text-sm text-gray-600">Respondents</dt>
             <dd className="text-sm font-medium text-gray-900">{responses.toLocaleString()}</dd>
