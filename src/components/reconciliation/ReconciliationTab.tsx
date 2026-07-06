@@ -2,42 +2,52 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { format } from 'date-fns';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
 import {
   MOCK_RECONCILIATION_META,
-  MOCK_PENDING_RECONCILIATION_REQUEST,
-  STATUS_CONFIG,
+  canSubmitReconciliation,
+  getAggregateReconciliationStatus,
   type ReconciliationMeta,
-  type ReconciliationStatus,
+  type ReconciliationRequest,
 } from '@/data/mock-reconciliation';
 import { ReconciliationOverviewCards } from '@/components/reconciliation/ReconciliationOverviewCards';
 import { type Batch, type StepFooterConfig } from '@/components/reconciliation/ReconciliationWizard';
 import { ReconcileWizardModal } from '@/components/reconciliation/ReconcileWizardModal';
 import { ReconciliationDashboard } from '@/components/reconciliation/ReconciliationDashboard';
+import { ReconciliationGuidelines } from '@/components/reconciliation/ReconciliationGuidelines';
 import { DetailPageContent } from '@/components/ui/page-layout';
 
 const WuButton = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })), { ssr: false });
-const WuChip = dynamic(() => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })), { ssr: false });
 
-function ReconciliationStatusChip({ status }: { status: ReconciliationStatus }) {
-  const cfg = STATUS_CONFIG[status];
-  const label = status === 'not_submitted' ? 'Not reconciled' : cfg.label;
-  return (
-    <WuChip size="sm" shape="rounded" color={cfg.color}>
-      {label}
-    </WuChip>
+function buildRequestFromBatches(batches: Batch[], requestIndex: number): ReconciliationRequest {
+  const idsSubmitted = batches.reduce((s, b) => s + b.valid, 0);
+  const submittedDate = format(new Date(), 'MMM d, yyyy');
+  const responses = batches.flatMap((b) =>
+    b.ids.slice(0, b.valid).map((responseId) => ({
+      responseId,
+      reason: b.reason,
+      decision: 'pending' as const,
+    })),
   );
+
+  return {
+    requestId: `REQ-2026-${1024 + requestIndex}`,
+    submittedDate,
+    idsSubmitted,
+    status: 'pending',
+    creditAmount: 0,
+    responses,
+    auditTrail: [
+      { date: submittedDate, event: 'Request submitted' },
+      { date: submittedDate, event: 'Validation completed' },
+      { date: submittedDate, event: 'Under review by QP quality team' },
+    ],
+  };
 }
 
 /* ── Empty state ── */
-function EmptyReconState({ onStart }: { onStart: () => void }) {
-  const rules = [
-    'One submission per project',
-    'Maximum 20% of completed responses',
-    'Submit within 30 days of project launch date',
-    'Automatic wallet credit after approval',
-  ];
-
+function EmptyReconState({ onStart, canReconcile }: { onStart: () => void; canReconcile: boolean }) {
   return (
     <div className="flex flex-col items-center py-10 text-center">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f0fe]">
@@ -49,21 +59,17 @@ function EmptyReconState({ onStart }: { onStart: () => void }) {
       <p className="mb-6 max-w-md text-sm text-[#8c9baa]">
         Upload Response IDs that should be reviewed. Approved responses will automatically be credited back to your wallet.
       </p>
-      <div className="mb-8 inline-flex flex-col gap-2 rounded-md border border-[#e0e4e8] bg-[#f9fafb] px-6 py-4 text-left">
-        {rules.map((r) => (
-          <div key={r} className="flex items-center gap-2 text-sm text-[#54606b]">
-            <span className="wm-check-circle text-base text-[#188038]" aria-hidden="true" />
-            {r}
-          </div>
-        ))}
-      </div>
-      <WuButton
-        Icon={<span className="wm-assignment-return" aria-hidden="true" />}
-        iconPosition="left"
-        onClick={onStart}
-      >
-        Reconcile
-      </WuButton>
+      {canReconcile ? (
+        <WuButton
+          Icon={<span className="wm-assignment-return" aria-hidden="true" />}
+          iconPosition="left"
+          onClick={onStart}
+        >
+          Reconcile
+        </WuButton>
+      ) : (
+        <p className="text-sm text-[#8c9baa]">The reconciliation window is closed or your ID allowance is fully used.</p>
+      )}
     </div>
   );
 }
@@ -75,14 +81,17 @@ export function ReconciliationTab({ projectName: _projectName }: { projectName: 
   const [meta, setMeta] = useState<ReconciliationMeta>({
     ...MOCK_RECONCILIATION_META,
     status: 'not_submitted',
+    requests: [],
   });
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [modalOpen, setModalOpen]         = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   /* ── Wizard state (lifted here so footer can live in WuModalFooter) ── */
-  const [step, setStep]       = useState(1);
+  const [step, setStep] = useState(1);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [confirmed, setConfirmed] = useState(false);
+
+  const hasSubmissions = meta.requests.length > 0;
+  const canReconcile = canSubmitReconciliation(meta);
 
   function openModal() {
     setStep(1);
@@ -92,26 +101,17 @@ export function ReconciliationTab({ projectName: _projectName }: { projectName: 
   }
 
   function handleSubmit() {
-    const idsSubmitted = batches.reduce((s, b) => s + b.valid, 0);
-    const responses = batches.flatMap((b) =>
-      b.ids.slice(0, b.valid).map((responseId) => ({
-        responseId,
-        reason: b.reason,
-        decision: 'pending' as const,
-      })),
-    );
+    const newRequest = buildRequestFromBatches(batches, meta.requests.length);
     showToast({ message: 'Reconciliation request submitted!', variant: 'success' });
-    setMeta((prev) => ({
-      ...prev,
-      status: 'pending',
-      request: {
-        ...MOCK_PENDING_RECONCILIATION_REQUEST,
-        idsSubmitted,
-        responses: responses.length > 0 ? responses : MOCK_PENDING_RECONCILIATION_REQUEST.responses,
-      },
-    }));
+    setMeta((prev) => {
+      const requests = [...prev.requests, newRequest];
+      return {
+        ...prev,
+        requests,
+        status: getAggregateReconciliationStatus({ ...prev, requests }),
+      };
+    });
     setModalOpen(false);
-    setShowDashboard(true);
   }
 
   /* ── Footer config per step ── */
@@ -125,13 +125,13 @@ export function ReconciliationTab({ projectName: _projectName }: { projectName: 
 
   return (
     <DetailPageContent>
-      <div className="mb-5">
-        <ReconciliationStatusChip status={meta.status} />
-      </div>
       <ReconciliationOverviewCards meta={meta} />
+      <ReconciliationGuidelines className="mt-5 w-full" />
       <div className="mt-8">
-        {!showDashboard && <EmptyReconState onStart={openModal} />}
-        {showDashboard && <ReconciliationDashboard meta={meta} />}
+        {!hasSubmissions && <EmptyReconState onStart={openModal} canReconcile={canReconcile} />}
+        {hasSubmissions && (
+          <ReconciliationDashboard meta={meta} canReconcile={canReconcile} onReconcile={openModal} />
+        )}
       </div>
 
       <ReconcileWizardModal

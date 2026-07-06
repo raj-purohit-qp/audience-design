@@ -4,6 +4,8 @@ import React, { useState, useRef, type ChangeEvent } from 'react';
 import dynamic from 'next/dynamic';
 import {
   REJECTION_REASONS,
+  getReconciliationLimitError,
+  getRemainingReconciliationIds,
   type RejectionReasonValue,
   type ReconciliationMeta,
 } from '@/data/mock-reconciliation';
@@ -25,6 +27,32 @@ export interface Batch {
   /** valid / invalid counts after simulated validation */
   valid: number;
   invalid: number;
+}
+
+function simulateBatchCounts(idCount: number) {
+  const invalid = Math.min(Math.floor(idCount * 0.05), 2);
+  return { valid: idCount - invalid, invalid };
+}
+
+function mergeBatchByReason(batches: Batch[], incoming: Batch): Batch[] {
+  const existing = batches.find((b) => b.reason === incoming.reason);
+  if (!existing) return [...batches, incoming];
+
+  const seen = new Set(existing.ids);
+  const mergedIds = [...existing.ids];
+  for (const id of incoming.ids) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      mergedIds.push(id);
+    }
+  }
+
+  const counts = simulateBatchCounts(mergedIds.length);
+  return batches.map((b) =>
+    b.id === existing.id
+      ? { ...b, ids: mergedIds, valid: counts.valid, invalid: counts.invalid }
+      : b,
+  );
 }
 
 /* ── Step indicator ── */
@@ -213,26 +241,34 @@ function CompactBatchItem({ batch, onRemove }: { batch: Batch; onRemove: () => v
 function AddBatchForm({
   onAdd,
   maxRemaining,
+  maxPct,
   batches,
   onRemoveBatch,
 }: {
   onAdd: (batch: Batch) => void;
   maxRemaining: number;
+  maxPct: number;
   batches: Batch[];
   onRemoveBatch: (id: string) => void;
 }) {
   const [text, setText]     = useState('');
   const [reason, setReason] = useState<RejectionReasonValue | ''>('');
 
-  const rawIds    = text.split('\n').map((l) => l.trim()).filter(Boolean);
-  const overLimit = rawIds.length > maxRemaining;
-  const hasInput  = rawIds.length > 0 && reason !== '';
+  const rawIds       = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const limitError   = getReconciliationLimitError(rawIds.length, maxRemaining, maxPct);
+  const overLimit    = limitError !== null;
+  const hasInput     = rawIds.length > 0 && reason !== '';
 
   function handleAdd() {
     if (!hasInput) return;
-    const invalid = Math.min(Math.floor(rawIds.length * 0.05), 2);
-    const valid   = rawIds.length - invalid;
-    onAdd({ id: `batch-${Date.now()}`, reason: reason as RejectionReasonValue, ids: rawIds, valid, invalid });
+    const counts = simulateBatchCounts(rawIds.length);
+    onAdd({
+      id: `batch-${Date.now()}`,
+      reason: reason as RejectionReasonValue,
+      ids: rawIds,
+      valid: counts.valid,
+      invalid: counts.invalid,
+    });
     setText('');
   }
 
@@ -258,8 +294,8 @@ function AddBatchForm({
               aria-label="Response IDs for this batch"
               spellCheck={false}
             />
-            <p className={`text-xs ${overLimit ? 'font-medium text-[#d93025]' : 'text-[#8c9baa]'}`}>
-              {rawIds.length} IDs entered{overLimit ? ` — max ${maxRemaining} remaining` : ''}
+            <p className={`text-xs ${overLimit ? 'font-medium text-[#d93025]' : 'text-[#8c9baa]'}`} role={overLimit ? 'alert' : undefined}>
+              {overLimit ? limitError : `${rawIds.length} IDs entered`}
             </p>
           </div>
 
@@ -589,13 +625,14 @@ const MODE_OPTIONS = [
 function Step1Upload({
   onBatchesChange,
   batches,
-  maxIds,
+  meta,
 }: {
   onBatchesChange: (batches: Batch[]) => void;
   batches: Batch[];
-  maxIds: number;
+  meta: ReconciliationMeta;
 }) {
   const [mode, setMode] = useState<'manual' | 'csv'>('manual');
+  const maxIds = getRemainingReconciliationIds(meta);
   const totalValid = batches.reduce((s, b) => s + b.valid, 0);
   const remaining  = Math.max(0, maxIds - totalValid);
 
@@ -619,8 +656,9 @@ function Step1Upload({
       {/* ── Mode content ── */}
       {mode === 'manual' ? (
         <AddBatchForm
-          onAdd={(b) => onBatchesChange([...batches, b])}
+          onAdd={(b) => onBatchesChange(mergeBatchByReason(batches, b))}
           maxRemaining={remaining}
+          maxPct={meta.maxPct}
           batches={batches}
           onRemoveBatch={(id) => onBatchesChange(batches.filter((x) => x.id !== id))}
         />
@@ -798,7 +836,7 @@ export function ReconciliationWizard({
         <Step1Upload
           batches={batches}
           onBatchesChange={onBatchesChange}
-          maxIds={meta.maxIds}
+          meta={meta}
         />
       )}
       {step === 2 && <Step2Review batches={batches} />}

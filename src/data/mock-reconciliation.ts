@@ -56,7 +56,51 @@ export interface ReconciliationMeta {
   estimatedRefund: number;
   cpi: number;
   status: ReconciliationStatus;
-  request?: ReconciliationRequest;
+  requests: ReconciliationRequest[];
+}
+
+export function getTotalIdsSubmitted(meta: ReconciliationMeta): number {
+  return meta.requests.reduce((sum, r) => sum + r.idsSubmitted, 0);
+}
+
+export function getRemainingReconciliationIds(meta: ReconciliationMeta): number {
+  return Math.max(0, meta.maxIds - getTotalIdsSubmitted(meta));
+}
+
+export function isReconciliationWindowOpen(meta: ReconciliationMeta): boolean {
+  return meta.daysRemaining > 0;
+}
+
+export function canSubmitReconciliation(meta: ReconciliationMeta): boolean {
+  return isReconciliationWindowOpen(meta) && getRemainingReconciliationIds(meta) > 0;
+}
+
+export function getAggregateReconciliationStatus(meta: ReconciliationMeta): ReconciliationStatus {
+  if (meta.requests.length === 0) return 'not_submitted';
+  if (meta.requests.some((r) => r.status === 'pending')) return 'pending';
+  const statuses = meta.requests.map((r) => r.status);
+  if (statuses.every((s) => s === 'approved')) return 'approved';
+  if (statuses.every((s) => s === 'rejected')) return 'rejected';
+  if (statuses.some((s) => s === 'partially_approved' || s === 'approved')) return 'partially_approved';
+  return meta.requests[meta.requests.length - 1].status;
+}
+
+export function getLatestRequest(meta: ReconciliationMeta): ReconciliationRequest | undefined {
+  return meta.requests[meta.requests.length - 1];
+}
+
+export function getReconciliationLimitError(
+  idsEntered: number,
+  maxRemaining: number,
+  maxPct: number,
+): string | null {
+  if (idsEntered <= maxRemaining) return null;
+  const excess = idsEntered - maxRemaining;
+  return `You cannot reconcile more than ${maxPct}% of completed response IDs. Remove at least ${excess} ID${excess === 1 ? '' : 's'} to continue.`;
+}
+
+export function getActiveRequest(meta: ReconciliationMeta): ReconciliationRequest | undefined {
+  return meta.requests.find((r) => r.status === 'pending') ?? getLatestRequest(meta);
 }
 
 // ── Pending request (shown immediately after submission) ──
@@ -122,6 +166,7 @@ export const MOCK_RECONCILIATION_META: ReconciliationMeta = {
   estimatedRefund: 350.0,
   cpi: 3.5,
   status: 'not_submitted',
+  requests: [],
 };
 
 // ── Status display config ──
