@@ -63,6 +63,12 @@ export function getTotalIdsSubmitted(meta: ReconciliationMeta): number {
   return meta.requests.reduce((sum, r) => sum + r.idsSubmitted, 0);
 }
 
+export function getIssuedRefund(meta: ReconciliationMeta): number {
+  return meta.requests
+    .filter((r) => r.status === 'approved' || r.status === 'partially_approved')
+    .reduce((sum, r) => sum + r.creditAmount, 0);
+}
+
 export function getRemainingReconciliationIds(meta: ReconciliationMeta): number {
   return Math.max(0, meta.maxIds - getTotalIdsSubmitted(meta));
 }

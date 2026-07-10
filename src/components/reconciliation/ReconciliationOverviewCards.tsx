@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  getIssuedRefund,
   getRemainingReconciliationIds,
   getTotalIdsSubmitted,
   type ReconciliationMeta,
@@ -11,7 +12,8 @@ export function ReconciliationOverviewCards({ meta }: { meta: ReconciliationMeta
   const submitted = getTotalIdsSubmitted(meta);
   const remaining = getRemainingReconciliationIds(meta);
   const hasSubmissions = meta.requests.length > 0;
-  const remainingRefund = remaining * meta.cpi;
+  const issuedRefund = getIssuedRefund(meta);
+  const hasIssuedRefund = issuedRefund > 0;
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -39,9 +41,9 @@ export function ReconciliationOverviewCards({ meta }: { meta: ReconciliationMeta
         icon="wm-account-balance-wallet"
         iconBg="bg-[#e8f5e9]"
         iconFg="text-[#188038]"
-        label="Estimated refund available"
-        value={`$${(hasSubmissions ? remainingRefund : meta.estimatedRefund).toFixed(2)}`}
-        sub={`Based on $${meta.cpi.toFixed(2)} CPI`}
+        label="Issued refund"
+        value={hasIssuedRefund ? `$${issuedRefund.toFixed(2)}` : '0 USD'}
+        sub={hasIssuedRefund ? 'Credited to your wallet' : undefined}
       />
       <MetricCard
         icon="wm-event"
