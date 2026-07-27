@@ -52,11 +52,12 @@ export interface ChildCountryProject {
   countryCode: string;
   name: string;
   projectId: string;
-  status: 'Draft' | 'Live' | 'Paused' | 'Closed';
+  status: 'Draft' | 'Live' | 'Paused' | 'Soft-launched' | 'Closed' | 'Bid';
   responses: number;
   collected: number;
   cpi: number;
   totalCost: number;
+  currentIr: number;
   feasibility: FeasibilityLevel;
   audienceSummary: string;
 }
@@ -66,7 +67,7 @@ export interface MultiCountryProjectDetail {
   projectId: string;
   name: string;
   isMultiCountry: true;
-  status: 'Draft' | 'Live' | 'Paused' | 'Closed';
+  status: 'Draft' | 'Live' | 'Paused' | 'Soft-launched' | 'Closed' | 'Bid';
   client: string;
   dueDate: string;
   launchDate?: string;
@@ -276,10 +277,10 @@ export const MOCK_MULTI_COUNTRY_PARENT: MultiCountryProjectDetail = {
     { countryCode: 'IN', responses: 500, cpi: 1.66, estimatedCost: 830, setupStatus: 'ready', feasibility: 'high', configured: true, overrides: [], unresolvedIssues: [] },
   ],
   children: [
-    { id: 'mc-child-us', parentId: 'mc-parent-001', countryCode: 'US', name: 'BrandTracker_US', projectId: 'QP-MC2401-US', status: 'Live', responses: 500, collected: 340, cpi: 3.2, totalCost: 1600, feasibility: 'high', audienceSummary: 'Age 18–65, Male/Female, Car owners' },
-    { id: 'mc-child-gb', parentId: 'mc-parent-001', countryCode: 'GB', name: 'BrandTracker_UK', projectId: 'QP-MC2401-UK', status: 'Live', responses: 500, collected: 312, cpi: 4.1, totalCost: 2050, feasibility: 'high', audienceSummary: 'Age 18–65, Male/Female, Car owners' },
-    { id: 'mc-child-de', parentId: 'mc-parent-001', countryCode: 'DE', name: 'BrandTracker_DE', projectId: 'QP-MC2401-DE', status: 'Live', responses: 500, collected: 298, cpi: 5.5, totalCost: 2750, feasibility: 'high', audienceSummary: 'Age 25–65 override, Male/Female, Car owners' },
-    { id: 'mc-child-in', parentId: 'mc-parent-001', countryCode: 'IN', name: 'BrandTracker_IN', projectId: 'QP-MC2401-IN', status: 'Live', responses: 500, collected: 276, cpi: 1.66, totalCost: 830, feasibility: 'high', audienceSummary: 'Age 18–65, Male/Female' },
+    { id: 'mc-child-us', parentId: 'mc-parent-001', countryCode: 'US', name: 'BrandTracker_US', projectId: 'QP-MC2401-US', status: 'Live', responses: 500, collected: 340, cpi: 3.2, totalCost: 1600, currentIr: 46, feasibility: 'high', audienceSummary: 'Age 18–65, Male/Female, Car owners' },
+    { id: 'mc-child-gb', parentId: 'mc-parent-001', countryCode: 'GB', name: 'BrandTracker_UK', projectId: 'QP-MC2401-UK', status: 'Live', responses: 500, collected: 312, cpi: 4.1, totalCost: 2050, currentIr: 41, feasibility: 'high', audienceSummary: 'Age 18–65, Male/Female, Car owners' },
+    { id: 'mc-child-de', parentId: 'mc-parent-001', countryCode: 'DE', name: 'BrandTracker_DE', projectId: 'QP-MC2401-DE', status: 'Soft-launched', responses: 500, collected: 298, cpi: 5.5, totalCost: 2750, currentIr: 33, feasibility: 'high', audienceSummary: 'Age 25–65 override, Male/Female, Car owners' },
+    { id: 'mc-child-in', parentId: 'mc-parent-001', countryCode: 'IN', name: 'BrandTracker_IN', projectId: 'QP-MC2401-IN', status: 'Live', responses: 500, collected: 276, cpi: 1.66, totalCost: 830, currentIr: 52, feasibility: 'high', audienceSummary: 'Age 18–65, Male/Female' },
   ],
 };
 
