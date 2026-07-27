@@ -13,19 +13,27 @@ const WuSubtext = dynamic(
 );
 
 interface PageHeaderProps {
-  title: string;
+  title?: string;
   description?: string;
   action?: ReactNode;
+  /** When true, renders a full-width divider under the header (WickUI page pattern). */
+  divider?: boolean;
 }
 
-export function PageHeader({ title, description, action }: PageHeaderProps) {
+export function PageHeader({ title, description, action, divider = false }: PageHeaderProps) {
   return (
-    <div className="mb-6 flex items-start justify-between">
-      <div className="flex flex-col gap-1">
-        <WuHeading size="lg">{title}</WuHeading>
-        {description && <WuSubtext size="sm">{description}</WuSubtext>}
+    <div className={divider ? 'mb-6 border-b border-[#e0e4e8] pb-4' : 'mb-6'}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 text-left">
+          {title && <WuHeading size="lg">{title}</WuHeading>}
+          {description && (
+            <div className={title ? 'mt-1' : undefined}>
+              <WuSubtext size="sm">{description}</WuSubtext>
+            </div>
+          )}
+        </div>
+        {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
       </div>
-      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
     </div>
   );
 }
