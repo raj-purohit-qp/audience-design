@@ -186,6 +186,7 @@ export function buildMultiCountryProject(payload: CreateMultiCountryPayload): Mu
       collected: 0,
       cpi: plan.cpi,
       totalCost: plan.estimatedCost,
+      currentIr: payload.incidenceRate,
       feasibility: plan.feasibility,
       audienceSummary: payload.globalCriteria.slice(0, 3).map((c) => c.label).join(', '),
     })),

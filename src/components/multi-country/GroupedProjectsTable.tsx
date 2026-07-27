@@ -5,13 +5,24 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { AudienceProject, AudienceProjectStatus } from '@/data/mock-audience-projects';
-import { MOCK_AUDIENCE_PROJECTS, formatCurrency } from '@/data/mock-audience-projects';
-import { MOCK_MULTI_COUNTRY_PARENT } from '@/data/mock-multi-country';
-import { DASHBOARD_REGIONS } from '@/data/mock-multi-country';
-import { getCountryByCode } from '@/data/mock-multi-country';
+import {
+  MOCK_AUDIENCE_PROJECTS,
+  formatCurrency,
+  formatPercent,
+} from '@/data/mock-audience-projects';
+import {
+  MOCK_MULTI_COUNTRY_PARENT,
+  DASHBOARD_REGIONS,
+  getCountryByCode,
+  type ChildCountryProject,
+} from '@/data/mock-multi-country';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
+  { ssr: false },
+);
+const WuChip = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })),
   { ssr: false },
 );
 const WuInput = dynamic(
@@ -23,16 +34,191 @@ const WuSelect = dynamic(
   { ssr: false },
 );
 
-const STATUS_DOT: Record<AudienceProjectStatus, string> = {
-  Closed: 'bg-gray-400',
-  Bid: 'bg-gray-400',
-  Live: 'bg-green-500',
-  Draft: 'bg-amber-400',
+const STATUS_CHIP: Record<
+  AudienceProjectStatus,
+  { color: 'success' | 'warning' | 'danger' | undefined; bg: string; fg: string }
+> = {
+  Bid: { color: undefined, bg: '#f5f6f8', fg: '#54606b' },
+  Paused: { color: 'warning', bg: '#fff8e1', fg: '#b06d00' },
+  'Soft-launched': { color: undefined, bg: '#e8f0fe', fg: '#1b87e6' },
+  Live: { color: 'success', bg: '#e8f5e9', fg: '#188038' },
+  Closed: { color: undefined, bg: '#f5f6f8', fg: '#54606b' },
 };
 
-function StatusDot({ status }: { status: string }) {
-  const color = STATUS_DOT[status as AudienceProjectStatus] ?? 'bg-gray-400';
-  return <span className={`h-2 w-2 shrink-0 rounded-full ${color}`} aria-hidden="true" />;
+const TABLE_HEADERS = [
+  'Project name',
+  'Status',
+  'Progress',
+  'Complete',
+  'Cost per complete',
+  'Current IR',
+  'Current cost',
+  'Project cost',
+] as const;
+
+interface ProjectRowMetrics {
+  id: string;
+  name: string;
+  projectId: string;
+  href: string;
+  status: AudienceProjectStatus;
+  progressPercent: number;
+  completesCurrent: number;
+  costPerComplete: number;
+  currentIr: number;
+  currentCost: number;
+  projectCost: number;
+  indent?: boolean;
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
+}
+
+function StatusChip({ status }: { status: AudienceProjectStatus }) {
+  const cfg = STATUS_CHIP[status];
+  return (
+    <WuChip size="sm" shape="rounded" color={cfg.color}>
+      {status}
+    </WuChip>
+  );
+}
+
+function SelectAllCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      ref={(el) => {
+        if (el) el.indeterminate = indeterminate;
+      }}
+      onChange={(e) => onChange(e.target.checked)}
+      aria-label="Select all projects"
+      className="h-4 w-4 accent-[#1b87e6]"
+    />
+  );
+}
+
+function ProgressBar({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <div className="flex min-w-[120px] items-center gap-2">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#e0e4e8]">
+        <div
+          className="h-full rounded-full bg-[#1b87e6] transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="w-9 shrink-0 text-xs tabular-nums text-[#54606b]">{pct}%</span>
+    </div>
+  );
+}
+
+function childToRow(child: ChildCountryProject, parentId: string): ProjectRowMetrics {
+  const country = getCountryByCode(child.countryCode);
+  const progressPercent =
+    child.responses > 0 ? Math.round((child.collected / child.responses) * 100) : 0;
+
+  return {
+    id: child.id,
+    name: `${country?.flag ?? ''} ${child.name}`.trim(),
+    projectId: child.projectId,
+    href: `/projects/${parentId}?country=${child.countryCode}`,
+    status: child.status as AudienceProjectStatus,
+    progressPercent,
+    completesCurrent: child.collected,
+    costPerComplete: child.cpi,
+    currentIr: child.currentIr,
+    currentCost: Number((child.collected * child.cpi).toFixed(2)),
+    projectCost: child.totalCost,
+    indent: true,
+  };
+}
+
+function ProjectTableRow({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: ProjectRowMetrics;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
+}) {
+  return (
+    <tr className="border-t border-[#eef0f3] hover:bg-[#f9fafb]">
+      <td className="w-10 px-3 py-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => onSelect(e.target.checked)}
+          aria-label={`Select ${row.name}`}
+          className="h-4 w-4 accent-[#1b87e6]"
+        />
+      </td>
+      <td className={`px-4 py-3 ${row.indent ? 'pl-10' : ''}`}>
+        {row.expandable ? (
+          <button
+            type="button"
+            className="flex items-start gap-2 text-left"
+            onClick={row.onToggle}
+            aria-expanded={row.expanded}
+          >
+            <span className="mt-0.5 shrink-0 text-xs text-[#8c9baa]">
+              {row.expanded ? '▼' : '▶'}
+            </span>
+            <span>
+              <Link
+                href={row.href}
+                className="font-medium text-[#1a2340] hover:text-[#1b87e6] hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {row.name}
+              </Link>
+              <span className="mt-0.5 block text-xs text-[#8c9baa]">{row.projectId}</span>
+            </span>
+          </button>
+        ) : (
+          <>
+            <Link
+              href={row.href}
+              className="font-medium text-[#1a2340] hover:text-[#1b87e6] hover:underline"
+            >
+              {row.name}
+            </Link>
+            <span className="mt-0.5 block text-xs text-[#8c9baa]">{row.projectId}</span>
+          </>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <StatusChip status={row.status} />
+      </td>
+      <td className="px-4 py-3">
+        <ProgressBar value={row.progressPercent} />
+      </td>
+      <td className="px-4 py-3 tabular-nums text-[#1a2340]">
+        {row.completesCurrent.toLocaleString()}
+      </td>
+      <td className="px-4 py-3 tabular-nums text-[#1a2340]">
+        {formatCurrency(row.costPerComplete)}
+      </td>
+      <td className="px-4 py-3 tabular-nums text-[#1a2340]">
+        {formatPercent(row.currentIr)}
+      </td>
+      <td className="px-4 py-3 tabular-nums text-[#1a2340]">
+        {formatCurrency(row.currentCost)}
+      </td>
+      <td className="px-4 py-3 tabular-nums font-medium text-[#1a2340]">
+        {formatCurrency(row.projectCost)}
+      </td>
+    </tr>
+  );
 }
 
 export function GroupedProjectsTable() {
@@ -42,12 +228,31 @@ export function GroupedProjectsTable() {
   const [countryFilter, setCountryFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('All regions');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const parentSummary = useMemo(() => {
-    const totalCost = MOCK_MULTI_COUNTRY_PARENT.countries.reduce((s, c) => s + c.estimatedCost, 0);
-    const totalResponses = MOCK_MULTI_COUNTRY_PARENT.countries.reduce((s, c) => s + c.responses, 0);
-    const totalCollected = MOCK_MULTI_COUNTRY_PARENT.children.reduce((s, c) => s + c.collected, 0);
-    return { totalCost, totalResponses, totalCollected };
+  const parentMetrics = useMemo(() => {
+    const children = MOCK_MULTI_COUNTRY_PARENT.children;
+    const totalResponses = children.reduce((s, c) => s + c.responses, 0);
+    const totalCollected = children.reduce((s, c) => s + c.collected, 0);
+    const projectCost = children.reduce((s, c) => s + c.totalCost, 0);
+    const currentCost = children.reduce((s, c) => s + c.collected * c.cpi, 0);
+    const currentIr =
+      children.length > 0
+        ? Math.round(children.reduce((s, c) => s + c.currentIr, 0) / children.length)
+        : 0;
+    const progressPercent =
+      totalResponses > 0 ? Math.round((totalCollected / totalResponses) * 100) : 0;
+    const costPerComplete = totalResponses > 0 ? projectCost / totalResponses : 0;
+
+    return {
+      totalResponses,
+      totalCollected,
+      projectCost,
+      currentCost: Number(currentCost.toFixed(2)),
+      currentIr,
+      progressPercent,
+      costPerComplete: Number(costPerComplete.toFixed(2)),
+    };
   }, []);
 
   const filteredStandalone = useMemo(() => {
@@ -83,6 +288,24 @@ export function GroupedProjectsTable() {
     );
   }, [search, countryFilter, regionFilter, statusFilter]);
 
+  const visibleRowIds = useMemo(() => {
+    const ids: string[] = [];
+    if (showParent) {
+      ids.push(MOCK_MULTI_COUNTRY_PARENT.id);
+      if (expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id)) {
+        MOCK_MULTI_COUNTRY_PARENT.children
+          .filter((child) => countryFilter === 'all' || child.countryCode === countryFilter)
+          .forEach((child) => ids.push(child.id));
+      }
+    }
+    filteredStandalone.forEach((p) => ids.push(p.id));
+    return ids;
+  }, [showParent, expandedParents, countryFilter, filteredStandalone]);
+
+  const allVisibleSelected =
+    visibleRowIds.length > 0 && visibleRowIds.every((id) => selectedIds.has(id));
+  const someVisibleSelected = visibleRowIds.some((id) => selectedIds.has(id));
+
   function toggleParent(id: string) {
     setExpandedParents((prev) => {
       const next = new Set(prev);
@@ -92,21 +315,76 @@ export function GroupedProjectsTable() {
     });
   }
 
-  const progressPct = Math.round(
-    (parentSummary.totalCollected / parentSummary.totalResponses) * 100,
-  );
+  function toggleRow(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) visibleRowIds.forEach((id) => next.add(id));
+      else visibleRowIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  }
+
+  function standaloneToRow(project: AudienceProject): ProjectRowMetrics {
+    return {
+      id: project.id,
+      name: project.name,
+      projectId: project.projectId,
+      href: `/projects/${project.id}`,
+      status: project.status,
+      progressPercent: project.progressPercent,
+      completesCurrent: project.completesCurrent,
+      costPerComplete: project.costPerComplete,
+      currentIr: project.currentIr,
+      currentCost: project.currentCost,
+      projectCost: project.projectCost,
+    };
+  }
+
+  const parentRow: ProjectRowMetrics = {
+    id: MOCK_MULTI_COUNTRY_PARENT.id,
+    name: MOCK_MULTI_COUNTRY_PARENT.name,
+    projectId: MOCK_MULTI_COUNTRY_PARENT.projectId,
+    href: `/projects/${MOCK_MULTI_COUNTRY_PARENT.id}`,
+    status: MOCK_MULTI_COUNTRY_PARENT.status as AudienceProjectStatus,
+    progressPercent: parentMetrics.progressPercent,
+    completesCurrent: parentMetrics.totalCollected,
+    costPerComplete: parentMetrics.costPerComplete,
+    currentIr: parentMetrics.currentIr,
+    currentCost: parentMetrics.currentCost,
+    projectCost: parentMetrics.projectCost,
+    expandable: true,
+    expanded: expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id),
+    onToggle: () => toggleParent(MOCK_MULTI_COUNTRY_PARENT.id),
+  };
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 px-6">
         <WuSelect
-          data={[{ value: 'all', label: 'All countries' }, ...MOCK_MULTI_COUNTRY_PARENT.children.map((c) => ({
-            value: c.countryCode,
-            label: `${getCountryByCode(c.countryCode)?.flag} ${getCountryByCode(c.countryCode)?.label}`,
-          }))]}
+          data={[
+            { value: 'all', label: 'All countries' },
+            ...MOCK_MULTI_COUNTRY_PARENT.children.map((c) => ({
+              value: c.countryCode,
+              label: `${getCountryByCode(c.countryCode)?.flag} ${getCountryByCode(c.countryCode)?.label}`,
+            })),
+          ]}
           accessorKey={{ value: 'value', label: 'label' }}
-          value={{ value: countryFilter, label: countryFilter === 'all' ? 'All countries' : getCountryByCode(countryFilter)?.label ?? countryFilter }}
+          value={{
+            value: countryFilter,
+            label:
+              countryFilter === 'all'
+                ? 'All countries'
+                : (getCountryByCode(countryFilter)?.label ?? countryFilter),
+          }}
           onSelect={(v) => setCountryFilter((v as { value: string }).value)}
           Label="Country"
           variant="outlined"
@@ -124,17 +402,18 @@ export function GroupedProjectsTable() {
         <WuSelect
           data={[
             { value: 'all', label: 'All statuses' },
-            { value: 'Live', label: 'Live' },
-            { value: 'Draft', label: 'Draft' },
-            { value: 'Closed', label: 'Closed' },
             { value: 'Bid', label: 'Bid' },
+            { value: 'Paused', label: 'Paused' },
+            { value: 'Soft-launched', label: 'Soft-launched' },
+            { value: 'Live', label: 'Live' },
+            { value: 'Closed', label: 'Closed' },
           ]}
           accessorKey={{ value: 'value', label: 'label' }}
           value={{ value: statusFilter, label: statusFilter === 'all' ? 'All statuses' : statusFilter }}
           onSelect={(v) => setStatusFilter((v as { value: string }).value)}
           Label="Status"
           variant="outlined"
-          className="min-w-[140px]"
+          className="min-w-[160px]"
         />
         <div className="ml-auto">
           <WuInput
@@ -150,104 +429,63 @@ export function GroupedProjectsTable() {
         </div>
       </div>
 
-      <div className="mx-6 overflow-hidden rounded-md border border-gray-200 bg-white">
-        <table className="w-full text-sm" aria-label="Projects">
-          <thead className="bg-gray-50">
+      <div className="mx-6 overflow-x-auto rounded-md border border-[#e0e4e8] bg-white">
+        <table className="min-w-[1100px] w-full text-sm" aria-label="Projects">
+          <thead className="bg-[#f5f6f8]">
             <tr>
-              {['Project', 'Countries', 'Responses', 'Cost', 'Status', 'Progress'].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500">{h}</th>
+              <th className="w-10 px-3 py-3">
+                <SelectAllCheckbox
+                  checked={allVisibleSelected}
+                  indeterminate={someVisibleSelected && !allVisibleSelected}
+                  onChange={toggleSelectAll}
+                />
+              </th>
+              {TABLE_HEADERS.map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-3 text-left text-xs font-medium text-[#8c9baa]"
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {showParent && (
               <>
-                <tr className="border-t border-gray-100 bg-blue-50/30">
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 text-left font-semibold text-gray-900 hover:text-blue-600"
-                      onClick={() => toggleParent(MOCK_MULTI_COUNTRY_PARENT.id)}
-                      aria-expanded={expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id)}
-                    >
-                      <span className="text-gray-500">
-                        {expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id) ? '▼' : '▶'}
-                      </span>
-                      <Link
-                        href={`/projects/${MOCK_MULTI_COUNTRY_PARENT.id}`}
-                        className="hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {MOCK_MULTI_COUNTRY_PARENT.name}
-                      </Link>
-                    </button>
-                    <span className="ml-6 block text-xs text-gray-500">
-                      {MOCK_MULTI_COUNTRY_PARENT.projectId}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{MOCK_MULTI_COUNTRY_PARENT.countries.length}</td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {parentSummary.totalCollected.toLocaleString()} of{' '}
-                    {parentSummary.totalResponses.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {formatCurrency(parentSummary.totalCost)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      <StatusDot status={MOCK_MULTI_COUNTRY_PARENT.status} />
-                      {MOCK_MULTI_COUNTRY_PARENT.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1 w-16 overflow-hidden rounded-full bg-gray-200">
-                        <div className="h-full rounded-full bg-blue-600" style={{ width: `${progressPct}%` }} />
-                      </div>
-                      <span className="text-xs text-gray-600">{progressPct}%</span>
-                    </div>
-                  </td>
-                </tr>
+                <ProjectTableRow
+                  row={parentRow}
+                  selected={selectedIds.has(parentRow.id)}
+                  onSelect={(checked) => toggleRow(parentRow.id, checked)}
+                />
                 {expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id) &&
                   MOCK_MULTI_COUNTRY_PARENT.children
                     .filter((child) => countryFilter === 'all' || child.countryCode === countryFilter)
                     .map((child) => {
-                      const country = getCountryByCode(child.countryCode);
-                      const pct = child.responses > 0 ? Math.round((child.collected / child.responses) * 100) : 0;
+                      const row = childToRow(child, MOCK_MULTI_COUNTRY_PARENT.id);
                       return (
-                        <tr key={child.id} className="border-t border-gray-50 bg-gray-50/50">
-                          <td className="px-4 py-2.5 pl-12">
-                            <Link
-                              href={`/projects/${MOCK_MULTI_COUNTRY_PARENT.id}?country=${child.countryCode}`}
-                              className="font-medium text-gray-800 hover:text-blue-600 hover:underline"
-                            >
-                              {country?.flag} {child.name}
-                            </Link>
-                            <span className="block text-xs text-gray-500">{child.projectId}</span>
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-600">{country?.label}</td>
-                          <td className="px-4 py-2.5 text-gray-700">
-                            {child.collected.toLocaleString()} of {child.responses.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-700">{formatCurrency(child.totalCost)}</td>
-                          <td className="px-4 py-2.5">
-                            <span className="inline-flex items-center gap-1.5 text-xs">
-                              <StatusDot status={child.status} />
-                              {child.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <span className="text-xs text-gray-600">{pct}%</span>
-                          </td>
-                        </tr>
+                        <ProjectTableRow
+                          key={child.id}
+                          row={row}
+                          selected={selectedIds.has(row.id)}
+                          onSelect={(checked) => toggleRow(row.id, checked)}
+                        />
                       );
                     })}
               </>
             )}
 
-            {filteredStandalone.map((project) => (
-              <StandaloneRow key={project.id} project={project} />
-            ))}
+            {filteredStandalone.map((project) => {
+              const row = standaloneToRow(project);
+              return (
+                <ProjectTableRow
+                  key={project.id}
+                  row={row}
+                  selected={selectedIds.has(row.id)}
+                  onSelect={(checked) => toggleRow(row.id, checked)}
+                />
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -258,32 +496,5 @@ export function GroupedProjectsTable() {
         </WuButton>
       </div>
     </div>
-  );
-}
-
-function StandaloneRow({ project }: { project: AudienceProject }) {
-  return (
-    <tr className="border-t border-gray-100 hover:bg-gray-50">
-      <td className="px-4 py-3">
-        <Link href={`/projects/${project.id}`} className="font-semibold text-gray-900 hover:text-blue-600 hover:underline">
-          {project.name}
-        </Link>
-        <span className="block text-xs text-gray-500">{project.projectId}</span>
-      </td>
-      <td className="px-4 py-3 text-gray-500">1</td>
-      <td className="px-4 py-3 text-gray-700">
-        {project.completesCurrent.toLocaleString()} of {project.completesTarget.toLocaleString()}
-      </td>
-      <td className="px-4 py-3 font-medium text-gray-900">{formatCurrency(project.totalCost)}</td>
-      <td className="px-4 py-3">
-        <span className="inline-flex items-center gap-1.5">
-          <StatusDot status={project.status} />
-          {project.status}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <span className="text-xs text-gray-600">{project.progressPercent}%</span>
-      </td>
-    </tr>
   );
 }
