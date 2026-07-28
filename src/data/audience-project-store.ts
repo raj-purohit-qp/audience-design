@@ -10,6 +10,7 @@ import {
   MOCK_MULTI_COUNTRY_PARENT,
   slugifyChildName,
 } from './mock-multi-country';
+import { MOCK_AUDIENCE_PROJECTS } from './mock-audience-projects';
 
 export type AudienceProjectDetailStatus = 'Draft' | 'Live' | 'Paused' | 'Closed';
 
@@ -45,6 +46,8 @@ export interface SingleCountryProjectDetail {
   realtimeLOI?: number;
   totalCost: number;
   costPerInterview: number;
+  /** Consecutive pushes at the current CPI (max 2 before Same CPI is locked) */
+  sameCpiPushCount?: number;
   demographics: AudienceProjectDemographics;
   qualificationNote: string;
 }
@@ -85,6 +88,7 @@ export const MOCK_PROJECT_DETAIL: SingleCountryProjectDetail = {
   surveyLengthMinutes: 8,
   totalCost: 1800,
   costPerInterview: 1.2,
+  sameCpiPushCount: 0,
   demographics: DEFAULT_DEMOGRAPHICS,
   qualificationNote:
     'All panelists matching the demographic profile are eligible to respond.',
@@ -226,7 +230,46 @@ export function getMultiCountryProject(id: string): MultiCountryProjectDetail | 
 }
 
 export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
-  return getAudienceProject(id) ?? { ...MOCK_PROJECT_DETAIL, id };
+  const stored = getAudienceProject(id);
+  if (stored) return stored;
+
+  const listProject = MOCK_AUDIENCE_PROJECTS.find((p) => p.id === id);
+  if (!listProject) {
+    return { ...MOCK_PROJECT_DETAIL, id };
+  }
+
+  const statusMap: Record<string, AudienceProjectDetailStatus> = {
+    Bid: 'Draft',
+    'Soft-launched': 'Live',
+    Live: 'Live',
+    Paused: 'Paused',
+    Closed: 'Closed',
+  };
+  const status = statusMap[listProject.status] ?? 'Draft';
+  const isLiveLike = status === 'Live' || status === 'Paused';
+
+  return {
+    ...MOCK_PROJECT_DETAIL,
+    id: listProject.id,
+    projectId: listProject.projectId,
+    name: listProject.name,
+    status,
+    responses: listProject.completesTarget,
+    collected: listProject.completesCurrent,
+    costPerInterview: listProject.costPerComplete,
+    totalCost: listProject.projectCost,
+    sameCpiPushCount: listProject.sameCpiPushCount ?? 0,
+    ...(isLiveLike
+      ? {
+          launchDate: 'Jun 2, 2026',
+          etcDate: 'Jun 26, 2026',
+          daysElapsed: 8,
+          velocityPerHour: 5,
+          realtimeIR: listProject.currentIr || 42,
+          realtimeLOI: 6.8,
+        }
+      : {}),
+  };
 }
 
 export function resolveProject(id: string): AudienceProjectDetail {

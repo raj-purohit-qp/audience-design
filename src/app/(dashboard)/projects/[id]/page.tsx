@@ -7,6 +7,7 @@ import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
 import type { IWuTabItem } from '@npm-questionpro/wick-ui-lib';
 import { ProjectDashboard } from '@/components/projects/ProjectDashboard';
 import { ProjectDetailHeader, ReconciliationTabTrigger } from '@/components/projects/ProjectDetailHeader';
+import { PushProjectModal } from '@/components/projects/PushProjectModal';
 import { ReconciliationTab } from '@/components/reconciliation/ReconciliationTab';
 import { MultiCountryOverviewTab } from '@/components/multi-country/MultiCountryOverviewTab';
 import { MultiCountryProjectHeader } from '@/components/multi-country/MultiCountryProjectHeader';
@@ -20,6 +21,7 @@ import {
   type AudienceProjectDetail,
   type SingleCountryProjectDetail,
 } from '@/data/audience-project-store';
+import { formatCurrency, type PushProjectResult } from '@/data/mock-audience-projects';
 
 const WuTab = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTab })),
@@ -47,6 +49,7 @@ export default function ProjectDetailPage() {
   const { showToast } = useWuShowToast();
   const [project, setProject] = useState<AudienceProjectDetail | null>(null);
   const [activeTab, setActiveTab] = useState('details');
+  const [pushOpen, setPushOpen] = useState(false);
 
   useEffect(() => {
     setProject(resolveProject(id));
@@ -98,6 +101,25 @@ export default function ProjectDetailPage() {
     if (!project) return;
     persist({ ...project, status: 'Closed' });
     showToast({ message: 'Survey closed.', variant: 'success' });
+  }
+
+  function handlePushConfirm(result: PushProjectResult) {
+    if (!project || isMultiCountryProject(project)) return;
+    const nextCount =
+      result.mode === 'same' ? (project.sameCpiPushCount ?? 0) + 1 : 0;
+    persist({
+      ...project,
+      costPerInterview: result.cpi,
+      sameCpiPushCount: nextCount,
+      totalCost: Number((project.responses * result.cpi).toFixed(2)),
+    });
+    showToast({
+      message:
+        result.mode === 'same'
+          ? `Project pushed at ${formatCurrency(result.cpi)}.`
+          : `Project pushed at higher CPI ${formatCurrency(result.cpi)}.`,
+      variant: 'success',
+    });
   }
 
   function handleAddCountry() {
@@ -183,11 +205,13 @@ export default function ProjectDetailPage() {
       value: 'details',
       Trigger: (
         <span className="flex items-center gap-1.5">
-          <span className="wm-info text-base" aria-hidden="true" />
-          Project details
+          <span className="wm-dashboard text-base" aria-hidden="true" />
+          Overview
         </span>
       ),
-      Content: <ProjectDashboard project={project} />,
+      Content: (
+        <ProjectDashboard project={project} onPush={() => setPushOpen(true)} />
+      ),
     },
     {
       value: 'reconciliation',
@@ -222,6 +246,15 @@ export default function ProjectDetailPage() {
           />
         </DetailTabContainer>
       </div>
+
+      <PushProjectModal
+        open={pushOpen}
+        onOpenChange={setPushOpen}
+        projectName={project.name}
+        currentCpi={project.costPerInterview}
+        sameCpiPushCount={project.sameCpiPushCount}
+        onConfirm={handlePushConfirm}
+      />
     </div>
   );
 }

@@ -20,6 +20,24 @@ export interface AudienceProject {
   currentIr: number;
   currentCost: number;
   projectCost: number;
+  /** Consecutive pushes at the current CPI (max 2 before Same CPI is locked) */
+  sameCpiPushCount?: number;
+}
+
+/** Minimum CPI when pushing at a higher rate (current CPI + 10%) */
+export function minHigherPushCpi(currentCpi: number): number {
+  return Number((currentCpi * 1.1).toFixed(2));
+}
+
+export function canPushAtSameCpi(sameCpiPushCount = 0): boolean {
+  return sameCpiPushCount < 2;
+}
+
+export type PushCpiMode = 'same' | 'higher';
+
+export interface PushProjectResult {
+  mode: PushCpiMode;
+  cpi: number;
 }
 
 export const CREDIT_BALANCE = 11017;
@@ -52,6 +70,7 @@ export const MOCK_AUDIENCE_PROJECTS: AudienceProject[] = [
     currentIr: 38,
     currentCost: 1286.5,
     projectCost: 2075.0,
+    sameCpiPushCount: 0,
   },
   {
     id: 'ap-003',
@@ -122,6 +141,7 @@ export const MOCK_AUDIENCE_PROJECTS: AudienceProject[] = [
     currentIr: 44,
     currentCost: 1521.0,
     projectCost: 1950.0,
+    sameCpiPushCount: 2,
   },
   {
     id: 'ap-008',
@@ -178,6 +198,7 @@ export const MOCK_AUDIENCE_PROJECTS: AudienceProject[] = [
     currentIr: 47,
     currentCost: 2661.75,
     projectCost: 2925.0,
+    sameCpiPushCount: 1,
   },
   {
     id: 'ap-012',

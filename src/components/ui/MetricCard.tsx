@@ -59,10 +59,10 @@ export function MetricCard({
   return (
     <WuCard
       rounded
-      className={`flex h-full flex-col overflow-hidden p-0 ${
+      className={`flex h-full flex-col overflow-hidden border border-[#e0e4e8] p-0 shadow-none ${
         hoverable
-          ? `transition-all duration-150 ${hov ? 'border-[#1b87e6] shadow-md' : 'shadow-sm'}`
-          : 'shadow-sm'
+          ? `transition-colors duration-150 ${hov ? 'border-[#1b87e6]' : ''}`
+          : ''
       }`}
       onMouseEnter={hoverable ? () => setHov(true) : undefined}
       onMouseLeave={hoverable ? () => setHov(false) : undefined}
