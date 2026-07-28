@@ -115,3 +115,23 @@ A compact calculator beside the settings form on each tab. Preview values seed f
 | Request log | History of approval requests: Account manager, Date, Pricing model, Status, and Reason |
 | Reason | Required explanation from the Uber admin when rejecting a request |
 | Save changes | Uber admin action that applies the pending draft as live settings |
+
+---
+
+## Push project (Live)
+
+**Purpose:** When a Live project is not gaining traffic as expected, users can **Push** the project to accelerate collection.
+
+**Availability**
+- **Projects table:** Hover a Live project row — **Push** appears on the right side of the row.
+- **Project detail:** Top-right of the **Collection progress** card (Live projects only). **Push** has no icon.
+
+**Flow**
+1. User clicks **Push**.
+2. Modal asks whether to push at the **Same CPI** or a **Higher CPI**.
+3. **Same CPI:** Allowed only if the project has been pushed fewer than 2 times at the current CPI. After 2 same-CPI pushes, Same CPI is disabled.
+4. **Higher CPI:** User enters a new CPI that must be at least **10% above** the current CPI.
+5. Confirming updates the project CPI (and resets the same-CPI push count when pushing higher) and shows a success toast.
+
+**Demo seeding**
+- Some Live list projects start with 0, 1, or 2 same-CPI pushes so both allowed and locked Same CPI states are visible.

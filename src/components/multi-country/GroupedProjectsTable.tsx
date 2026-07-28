@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { AudienceProject, AudienceProjectStatus } from '@/data/mock-audience-projects';
+import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
+import type { AudienceProject, AudienceProjectStatus, PushProjectResult } from '@/data/mock-audience-projects';
 import {
   MOCK_AUDIENCE_PROJECTS,
   formatCurrency,
@@ -16,6 +17,7 @@ import {
   getCountryByCode,
   type ChildCountryProject,
 } from '@/data/mock-multi-country';
+import { PushProjectModal } from '@/components/projects/PushProjectModal';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -54,6 +56,7 @@ const TABLE_HEADERS = [
   'Current IR',
   'Current cost',
   'Project cost',
+  '',
 ] as const;
 
 interface ProjectRowMetrics {
@@ -68,6 +71,7 @@ interface ProjectRowMetrics {
   currentIr: number;
   currentCost: number;
   projectCost: number;
+  sameCpiPushCount?: number;
   indent?: boolean;
   expandable?: boolean;
   expanded?: boolean;
@@ -146,13 +150,17 @@ function ProjectTableRow({
   row,
   selected,
   onSelect,
+  onPush,
 }: {
   row: ProjectRowMetrics;
   selected: boolean;
   onSelect: (checked: boolean) => void;
+  onPush?: (row: ProjectRowMetrics) => void;
 }) {
+  const showPush = row.status === 'Live' && !!onPush;
+
   return (
-    <tr className="border-t border-[#eef0f3] hover:bg-[#f9fafb]">
+    <tr className="group border-t border-[#eef0f3] hover:bg-[#f9fafb]">
       <td className="w-10 px-3 py-3">
         <input
           type="checkbox"
@@ -217,18 +225,39 @@ function ProjectTableRow({
       <td className="px-4 py-3 tabular-nums font-medium text-[#1a2340]">
         {formatCurrency(row.projectCost)}
       </td>
+      <td className="w-[5.5rem] px-3 py-3 text-right">
+        {showPush && (
+          <div className="project-row-actions opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <WuButton
+              type="button"
+              variant="outline"
+              color="primary"
+              size="sm"
+              onClick={() => onPush(row)}
+              aria-label={`Push ${row.name}`}
+            >
+              Push
+            </WuButton>
+          </div>
+        )}
+      </td>
     </tr>
   );
 }
 
 export function GroupedProjectsTable() {
   const router = useRouter();
+  const { showToast } = useWuShowToast();
   const [search, setSearch] = useState('');
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set(['mc-parent-001']));
   const [countryFilter, setCountryFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('All regions');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [projects, setProjects] = useState<AudienceProject[]>(() =>
+    MOCK_AUDIENCE_PROJECTS.map((p) => ({ ...p })),
+  );
+  const [pushTarget, setPushTarget] = useState<ProjectRowMetrics | null>(null);
 
   const parentMetrics = useMemo(() => {
     const children = MOCK_MULTI_COUNTRY_PARENT.children;
@@ -257,7 +286,7 @@ export function GroupedProjectsTable() {
 
   const filteredStandalone = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return MOCK_AUDIENCE_PROJECTS.filter((p) => {
+    return projects.filter((p) => {
       if (statusFilter !== 'all' && p.status !== statusFilter) return false;
       if (!query) return true;
       return (
@@ -265,7 +294,7 @@ export function GroupedProjectsTable() {
         p.projectId.toLowerCase().includes(query)
       );
     });
-  }, [search, statusFilter]);
+  }, [projects, search, statusFilter]);
 
   const showParent = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -346,7 +375,33 @@ export function GroupedProjectsTable() {
       currentIr: project.currentIr,
       currentCost: project.currentCost,
       projectCost: project.projectCost,
+      sameCpiPushCount: project.sameCpiPushCount,
     };
+  }
+
+  function handlePushConfirm(result: PushProjectResult) {
+    if (!pushTarget) return;
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== pushTarget.id) return p;
+        const nextCount = result.mode === 'same' ? (p.sameCpiPushCount ?? 0) + 1 : 0;
+        return {
+          ...p,
+          costPerComplete: result.cpi,
+          sameCpiPushCount: nextCount,
+          currentCost: Number((p.completesCurrent * result.cpi).toFixed(2)),
+          projectCost: Number((p.completesTarget * result.cpi).toFixed(2)),
+        };
+      }),
+    );
+    showToast({
+      message:
+        result.mode === 'same'
+          ? `Project pushed at ${formatCurrency(result.cpi)}.`
+          : `Project pushed at higher CPI ${formatCurrency(result.cpi)}.`,
+      variant: 'success',
+    });
+    setPushTarget(null);
   }
 
   const parentRow: ProjectRowMetrics = {
@@ -483,6 +538,7 @@ export function GroupedProjectsTable() {
                   row={row}
                   selected={selectedIds.has(row.id)}
                   onSelect={(checked) => toggleRow(row.id, checked)}
+                  onPush={row.status === 'Live' ? (target) => setPushTarget(target) : undefined}
                 />
               );
             })}
@@ -495,6 +551,17 @@ export function GroupedProjectsTable() {
           <span className="wm-add" aria-hidden="true" /> Create project
         </WuButton>
       </div>
+
+      <PushProjectModal
+        open={!!pushTarget}
+        onOpenChange={(open) => {
+          if (!open) setPushTarget(null);
+        }}
+        projectName={pushTarget?.name ?? ''}
+        currentCpi={pushTarget?.costPerComplete ?? 0}
+        sameCpiPushCount={pushTarget?.sameCpiPushCount}
+        onConfirm={handlePushConfirm}
+      />
     </div>
   );
 }
