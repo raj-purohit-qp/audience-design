@@ -589,7 +589,7 @@ export function OrganizationPanelSettingsPage() {
               Reset
             </WuButton>
             <WuButton
-              variant="outline"
+              variant="outlined"
               color="primary"
               onClick={handleCancel}
               disabled={!showHeaderActions || fieldsReadOnly || !hasUnsavedChanges || submitting}
@@ -615,7 +615,7 @@ export function OrganizationPanelSettingsPage() {
               <>
                 {isPending && (
                   <WuButton
-                    variant="outline"
+                    variant="outlined"
                     color="error"
                     onClick={() => setRejectConfirmOpen(true)}
                     disabled={!showHeaderActions || submitting}
@@ -764,7 +764,7 @@ export function OrganizationPanelSettingsPage() {
           <p className="mt-1 text-sm text-[#54606b]">Please try again.</p>
           <WuButton
             className="mt-4"
-            variant="outline"
+            variant="outlined"
             color="primary"
             onClick={() => void loadHomeOrganization()}
           >

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
 import type { IWuTabItem } from '@npm-questionpro/wick-ui-lib';
 import { ProjectDashboard } from '@/components/projects/ProjectDashboard';
@@ -11,7 +11,6 @@ import { PushProjectModal } from '@/components/projects/PushProjectModal';
 import { ReconciliationTab } from '@/components/reconciliation/ReconciliationTab';
 import { MultiCountryOverviewTab } from '@/components/multi-country/MultiCountryOverviewTab';
 import { MultiCountryProjectHeader } from '@/components/multi-country/MultiCountryProjectHeader';
-import { CountriesTab } from '@/components/multi-country/CountriesTab';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DetailPageContent, DetailTabContainer } from '@/components/ui/page-layout';
 import {
@@ -45,7 +44,6 @@ function withLaunchDefaults(project: SingleCountryProjectDetail): SingleCountryP
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { showToast } = useWuShowToast();
   const [project, setProject] = useState<AudienceProjectDetail | null>(null);
   const [activeTab, setActiveTab] = useState('details');
@@ -122,10 +120,6 @@ export default function ProjectDetailPage() {
     });
   }
 
-  function handleAddCountry() {
-    showToast({ message: 'BrandTracker_FR will be created without affecting existing countries', variant: 'success' });
-  }
-
   if (!project) {
     return (
       <div className="flex min-h-[320px] items-center justify-center bg-[#f4f6f9] p-6">
@@ -135,7 +129,6 @@ export default function ProjectDetailPage() {
   }
 
   const reconciliationEnabled = project.status === 'Closed';
-  const defaultTab = searchParams.get('country') ? 'countries' : 'overview';
 
   function handleTabChange(value: string) {
     if (value === 'reconciliation' && !reconciliationEnabled) return;
@@ -153,21 +146,6 @@ export default function ProjectDetailPage() {
           </span>
         ),
         Content: <MultiCountryOverviewTab project={project} />,
-      },
-      {
-        value: 'countries',
-        Trigger: (
-          <span className="flex items-center gap-1.5">
-            <span className="wm-public text-base" aria-hidden="true" />
-            Countries
-          </span>
-        ),
-        Content: (
-          <CountriesTab
-            children={project.children}
-            onAddCountry={handleAddCountry}
-          />
-        ),
       },
       {
         value: 'reconciliation',
@@ -193,7 +171,7 @@ export default function ProjectDetailPage() {
         />
         <div className="border-b border-[#e0e4e8] bg-white">
           <DetailTabContainer>
-            <WuTab items={tabItems} defaultValue={defaultTab} className="w-full" />
+            <WuTab items={tabItems} defaultValue="overview" className="w-full" />
           </DetailTabContainer>
         </div>
       </div>

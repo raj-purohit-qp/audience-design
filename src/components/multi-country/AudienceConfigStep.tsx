@@ -218,7 +218,7 @@ export function AudienceConfigStep({
                   );
                 })}
               </div>
-              <WuButton variant="outline" color="primary" onClick={applyBulkConfig}>
+              <WuButton variant="outlined" color="primary" onClick={applyBulkConfig}>
                 Apply
               </WuButton>
             </div>
@@ -261,7 +261,7 @@ export function AudienceConfigStep({
                   variant="outlined"
                 />
               </div>
-              <WuButton variant="outline" color="primary" onClick={copySettings}>
+              <WuButton variant="outlined" color="primary" onClick={copySettings}>
                 Copy settings
               </WuButton>
             </div>
@@ -304,7 +304,7 @@ export function AudienceConfigStep({
                         </p>
                         <div className="flex gap-2">
                           <WuButton
-                            variant="outline"
+                            variant="outlined"
                             size="sm"
                             onClick={() => removeIssueForCountry(activePlan.countryCode, c.id)}
                           >

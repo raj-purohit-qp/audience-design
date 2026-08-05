@@ -323,7 +323,7 @@ function AddBatchForm({
           </div>
 
           <WuButton
-            variant="outline"
+            variant="outlined"
             color="primary"
             disabled={!hasInput || overLimit}
             Icon={<span className="wm-add" aria-hidden="true" />}
@@ -494,7 +494,7 @@ function CsvUploadSection() {
           <div className="flex items-center justify-between border-b border-[#eef0f3] px-4 py-2.5">
             <p className="text-xs font-medium text-[#1a2340]">Reason codes reference</p>
             <WuButton
-              variant="outline"
+              variant="outlined"
               color="primary"
               Icon={<span className="wm-download text-sm" aria-hidden="true" />}
               iconPosition="left"

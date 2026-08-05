@@ -99,20 +99,20 @@ export function CountryDetailDrawer({ child, open, onClose }: CountryDetailDrawe
 
         <div className="flex flex-wrap gap-2 border-t border-gray-200 px-6 py-4">
           <WuButton
-            variant="outline"
+            variant="outlined"
             color="primary"
             onClick={() => showToast({ message: 'Edit audience for this country', variant: 'success' })}
           >
             Edit audience
           </WuButton>
           <WuButton
-            variant="outline"
+            variant="outlined"
             onClick={() => showToast({ message: 'Country paused', variant: 'success' })}
           >
             Pause country
           </WuButton>
           <WuButton
-            variant="outline"
+            variant="outlined"
             onClick={() => showToast({ message: 'Country closed', variant: 'success' })}
           >
             Close country
@@ -142,7 +142,7 @@ export function CountriesTab({ children, onAddCountry }: CountriesTabProps) {
       <div className="mb-4 flex items-center justify-between">
         <WuHeading size="sm">Countries</WuHeading>
         {onAddCountry && (
-          <WuButton variant="outline" color="primary" onClick={onAddCountry}>
+          <WuButton variant="outlined" color="primary" onClick={onAddCountry}>
             <span className="wm-add" aria-hidden="true" /> Add country
           </WuButton>
         )}

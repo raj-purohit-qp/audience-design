@@ -1,23 +1,26 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
-import { CompactNumericInput } from '@/components/ui/CompactNumericInput';
+import type { IWuSliderMark, IWuTabItem } from '@npm-questionpro/wick-ui-lib';
 import { AudienceTemplateCard } from '@/components/projects/AudienceTemplateCard';
 import { CheckWithAiButton } from '@/components/projects/CheckWithAiButton';
 import { IrAiEstimateModal } from '@/components/projects/IrAiEstimateModal';
-import { ProjectEstimatePanel } from '@/components/projects/ProjectEstimatePanel';
-import { CountryTabsBar } from '@/components/multi-country/CountryTabsBar';
+import { SelectSurveyModal } from '@/components/projects/SelectSurveyModal';
+import {
+  ProjectEstimatePanel,
+  type CountryCostBreakdownRow,
+} from '@/components/projects/ProjectEstimatePanel';
 import {
   DEFAULT_AUDIENCE_TEMPLATES,
   MOCK_LANGUAGES,
-  MOCK_SURVEYS,
   MY_AUDIENCE_TEMPLATES,
   NO_SURVEY_OPTION,
   RESPONSE_PRESETS,
   calculateEstimate,
+  templateDisplayName,
   type LanguageOption,
   type SurveyOption,
 } from '@/data/mock-project-create';
@@ -47,28 +50,99 @@ const WuDatePicker = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuDatePicker })),
   { ssr: false },
 );
-const WuChip = dynamic(
-  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })),
+const WuStepper = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuStepper })),
+  { ssr: false },
+);
+const WuSlider = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSlider })),
+  { ssr: false },
+);
+const WuCard = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCard })),
+  { ssr: false },
+);
+const WuTooltip = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTooltip })),
+  { ssr: false },
+);
+const WuTab = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTab })),
   { ssr: false },
 );
 
 const PROJECT_NAME_MAX = 100;
+const DEFAULT_COUNTRY = MULTI_COUNTRY_CATALOG.find((c) => c.value === 'SG') ?? MULTI_COUNTRY_CATALOG[0];
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-sm font-semibold text-gray-900">{children}</h2>;
+function CountryNameWithCode({ label, code }: { label: string; code: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="leading-none">{label}</span>
+      <span className="text-[11px] leading-none text-[#8c9baa]">{code}</span>
+    </span>
+  );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <span className="mb-1.5 block text-xs font-medium text-gray-600">{children}</span>;
+type CountrySelectOption = {
+  value: string;
+  label: string;
+  icon?: ReactNode;
+};
+
+const COUNTRY_SELECT_OPTIONS: CountrySelectOption[] = MULTI_COUNTRY_CATALOG.map((c) => ({
+  value: c.value,
+  // WuSelect stringifies `label` in options; put styled name+code in `icon` (rendered as a node).
+  label: '',
+  icon: <CountryNameWithCode label={c.label} code={c.value} />,
+}));
+
+function SectionHeading({ children }: { children: ReactNode }) {
+  return <h2 className="text-base font-semibold text-[#1a2340]">{children}</h2>;
 }
 
-function TemplateSectionLabel({ children }: { children: React.ReactNode }) {
-  return <span className="mb-2 block text-xs font-normal text-gray-500">{children}</span>;
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="mb-1.5 block text-xs font-medium text-[#54606b]">{children}</span>;
 }
 
 function nearestPreset(value: number): number {
   return RESPONSE_PRESETS.reduce((prev, curr) =>
     Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev,
+  );
+}
+
+const RESPONSE_SLIDER_MARKS: IWuSliderMark[] = RESPONSE_PRESETS.map((preset, idx) => ({
+  value: idx,
+  label: preset.toLocaleString(),
+}));
+
+function ResponsesSlider({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const activeIndex = RESPONSE_PRESETS.indexOf(value as (typeof RESPONSE_PRESETS)[number]);
+  const safeIndex = activeIndex >= 0 ? activeIndex : 0;
+
+  return (
+    <div className="w-full pt-1 pb-1">
+      <WuSlider
+        min={0}
+        max={RESPONSE_PRESETS.length - 1}
+        step={1}
+        value={safeIndex}
+        onValueChange={(next) => {
+          const idx = Array.isArray(next) ? next[0] : next;
+          onChange(RESPONSE_PRESETS[idx] ?? RESPONSE_PRESETS[0]);
+        }}
+        marks={RESPONSE_SLIDER_MARKS}
+        formatValue={(idx) => RESPONSE_PRESETS[idx]?.toLocaleString() ?? String(idx)}
+        color="primary"
+        size="md"
+        aria-label="Responses slider"
+      />
+    </div>
   );
 }
 
@@ -79,59 +153,98 @@ export function CreateProjectForm() {
   const [projectName, setProjectName] = useState('');
   const [selectedSurvey, setSelectedSurvey] = useState<SurveyOption>(NO_SURVEY_OPTION);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(MOCK_LANGUAGES[0]);
-  const [selectedCountries, setSelectedCountries] = useState<CountryDefinition[]>([
-    MULTI_COUNTRY_CATALOG[0],
-  ]);
-  const [activeCountryCode, setActiveCountryCode] = useState('US');
+  const [selectedCountries, setSelectedCountries] = useState<CountryDefinition[]>([DEFAULT_COUNTRY]);
+  const [activeCountryCode, setActiveCountryCode] = useState(DEFAULT_COUNTRY.value);
   const [responses, setResponses] = useState<number>(RESPONSE_PRESETS[0]);
-  const [incidenceRate, setIncidenceRate] = useState('50');
-  const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date('2026-07-02'));
-  const [surveyLength, setSurveyLength] = useState('10');
+  const [incidenceRate, setIncidenceRate] = useState(50);
+  const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date('2026-08-05'));
+  const [surveyLength, setSurveyLength] = useState(10);
   const [templatesByCountry, setTemplatesByCountry] = useState<Record<string, string | null>>({
-    US: 'def-3',
+    [DEFAULT_COUNTRY.value]: 'def-1',
   });
   const [isIrModalOpen, setIsIrModalOpen] = useState(false);
-
-  const parsedIr = Number.parseFloat(incidenceRate) || 0;
-  const surveyLengthMinutes = Number.parseInt(surveyLength, 10) || 10;
-  const presetIndex = RESPONSE_PRESETS.indexOf(responses as (typeof RESPONSE_PRESETS)[number]);
-  const activeCountry = getCountryByCode(activeCountryCode);
-  const activeTemplateId = templatesByCountry[activeCountryCode] ?? null;
-
-  const surveySelectData = MOCK_SURVEYS.map((s) => ({ value: s.id, label: s.name }));
-
-  const countriesNotSelected = MULTI_COUNTRY_CATALOG.filter(
-    (c) => !selectedCountries.some((s) => s.value === c.value),
-  );
+  const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
 
   const estimate = useMemo(() => {
-    const base = calculateEstimate(responses, parsedIr, surveyLengthMinutes);
-    const totalCost = selectedCountries.reduce(
-      (sum, c) => sum + c.cpi * responses,
-      0,
-    );
-    const avgCpi = selectedCountries.length > 0 ? totalCost / (responses * selectedCountries.length) : base.costPerInterview;
+    const base = calculateEstimate(responses, incidenceRate, surveyLength);
+    const totalCost = selectedCountries.reduce((sum, c) => sum + c.cpi * responses, 0);
+    const avgCpi =
+      selectedCountries.length > 0
+        ? totalCost / (responses * selectedCountries.length)
+        : base.costPerInterview;
     return {
       ...base,
       costPerInterview: Number(avgCpi.toFixed(2)),
       totalCost: Number(totalCost.toFixed(2)),
     };
-  }, [responses, parsedIr, surveyLengthMinutes, selectedCountries]);
+  }, [responses, incidenceRate, surveyLength, selectedCountries]);
 
   const totalResponses = responses * selectedCountries.length;
 
+  const countryBreakdown: CountryCostBreakdownRow[] = selectedCountries.map((country) => ({
+    code: country.value,
+    flag: country.flag,
+    label: country.label,
+    responses,
+    cpi: country.cpi,
+    total: Number((country.cpi * responses).toFixed(2)),
+  }));
+
+  const selectedCountryOptions = useMemo(
+    () =>
+      selectedCountries.map((c) => ({
+        value: c.value,
+        label: '',
+        icon: <CountryNameWithCode label={c.label} code={c.value} />,
+      })),
+    [selectedCountries],
+  );
+
+  const countrySelectTrigger = (
+    <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left text-xs">
+      {selectedCountries.map((country, index) => (
+        <span key={country.value}>
+          {index > 0 ? ', ' : ''}
+          <CountryNameWithCode label={country.label} code={country.value} />
+        </span>
+      ))}
+    </span>
+  );
+
   function handleResponsesChange(value: number) {
-    setResponses(nearestPreset(Math.max(RESPONSE_PRESETS[0], Math.min(RESPONSE_PRESETS.at(-1)!, value))));
+    setResponses(
+      nearestPreset(Math.max(RESPONSE_PRESETS[0], Math.min(RESPONSE_PRESETS.at(-1)!, value))),
+    );
   }
 
-  function addCountry(country: CountryDefinition) {
-    if (selectedCountries.some((c) => c.value === country.value)) return;
-    setSelectedCountries((prev) => [...prev, country]);
-    setActiveCountryCode(country.value);
-    setTemplatesByCountry((prev) => ({ ...prev, [country.value]: prev[country.value] ?? 'def-3' }));
+  function handleCountrySelectionChange(codes: string[]) {
+    const countries = codes
+      .map((code) => getCountryByCode(code))
+      .filter((c): c is CountryDefinition => Boolean(c));
+
+    if (countries.length === 0) {
+      showToast({ message: 'At least one country is required', variant: 'error' });
+      return;
+    }
+
+    setSelectedCountries(countries);
+    setTemplatesByCountry((prev) => {
+      const next: Record<string, string | null> = {};
+      countries.forEach((c) => {
+        next[c.value] = prev[c.value] ?? 'def-1';
+      });
+      return next;
+    });
+    if (!countries.some((c) => c.value === activeCountryCode)) {
+      setActiveCountryCode(countries[0].value);
+    }
   }
 
   function removeCountry(code: string) {
+    if (selectedCountries.length <= 1) {
+      showToast({ message: 'At least one country is required', variant: 'error' });
+      return;
+    }
     const next = selectedCountries.filter((c) => c.value !== code);
     setSelectedCountries(next);
     setTemplatesByCountry((prev) => {
@@ -139,14 +252,52 @@ export function CreateProjectForm() {
       delete copy[code];
       return copy;
     });
-    if (activeCountryCode === code && next.length > 0) {
+    if (activeCountryCode === code) {
       setActiveCountryCode(next[0].value);
     }
     showToast({ message: `${getCountryByCode(code)?.label ?? code} removed`, variant: 'success' });
   }
 
-  function setActiveTemplate(templateId: string | null) {
-    setTemplatesByCountry((prev) => ({ ...prev, [activeCountryCode]: templateId }));
+  function setTemplateForCountry(countryCode: string, templateId: string | null) {
+    setTemplatesByCountry((prev) => ({ ...prev, [countryCode]: templateId }));
+  }
+
+  function renderAudienceTemplates(country: CountryDefinition) {
+    const templateId = templatesByCountry[country.value] ?? null;
+    return (
+      <>
+        <div>
+          <p className="mb-2 text-xs font-medium text-[#8c9baa]">My templates</p>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {MY_AUDIENCE_TEMPLATES.map((template) => (
+              <AudienceTemplateCard
+                key={template.id}
+                template={template}
+                variant="compact"
+                selected={templateId === template.id}
+                onSelect={() => setTemplateForCountry(country.value, template.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-medium text-[#8c9baa]">Default templates</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {DEFAULT_AUDIENCE_TEMPLATES.map((template) => (
+              <AudienceTemplateCard
+                key={template.id}
+                template={template}
+                displayName={templateDisplayName(template, country.label)}
+                variant="featured"
+                selected={templateId === template.id}
+                onSelect={() => setTemplateForCountry(country.value, template.id)}
+              />
+            ))}
+          </div>
+        </div>
+      </>
+    );
   }
 
   function handleCreateProject() {
@@ -170,8 +321,8 @@ export function CreateProjectForm() {
       countries: selectedCountries,
       plans,
       globalCriteria: GLOBAL_CRITERIA,
-      incidenceRate: parsedIr,
-      surveyLengthMinutes,
+      incidenceRate,
+      surveyLengthMinutes: surveyLength,
       completionDate,
     });
 
@@ -180,258 +331,229 @@ export function CreateProjectForm() {
     router.push(`/projects/${project.id}`);
   }
 
-  const unavailableForActive = activeCountry
-    ? GLOBAL_CRITERIA.filter((c) => activeCountry.unavailableQualificationIds.includes(c.id))
-    : [];
+  const showCountryTabs = selectedCountries.length > 1;
+
+  const countryTabItems: IWuTabItem[] = selectedCountries.map((country) => ({
+    value: country.value,
+    Trigger: (
+      <span className="flex items-center gap-1.5">
+        <span>
+          <CountryNameWithCode label={country.label} code={country.value} />
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={`Remove ${country.label}`}
+          className="wm-close flex h-4 w-4 items-center justify-center rounded-full text-xs text-[#8c9baa] hover:bg-[#eef0f3] hover:text-[#1a2340]"
+          onClick={(e) => {
+            e.stopPropagation();
+            removeCountry(country.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              removeCountry(country.value);
+            }
+          }}
+        />
+      </span>
+    ),
+    Content: (
+      <div className="space-y-5 p-5 pt-4 sm:p-6 sm:pt-4">
+        {renderAudienceTemplates(country)}
+      </div>
+    ),
+  }));
 
   return (
-    <div className="flex min-h-full flex-col bg-white">
-      <div className="flex flex-1 flex-col gap-6 px-6 py-5 lg:flex-row lg:gap-8 lg:pr-6">
-        <div className="min-w-0 flex-1 space-y-8">
-          <div>
-            <WuButton
-              variant="secondary"
-              className="mb-3"
-              Icon={<span className="wm-arrow-back" aria-hidden="true" />}
-              iconPosition="left"
-              onClick={() => router.push('/projects')}
-            >
-              Back
-            </WuButton>
-            <div className="mb-1 flex justify-end">
-              <span className="text-xs text-gray-400">
-                {projectName.length}/{PROJECT_NAME_MAX}
-              </span>
-            </div>
-            <WuInput
-              variant="title"
-              placeholder="Enter project name"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value.slice(0, PROJECT_NAME_MAX))}
-              maxLength={PROJECT_NAME_MAX}
-              aria-label="Project name"
-            />
-          </div>
-
-          <section className="space-y-4">
-            <SectionHeading>Source</SectionHeading>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <WuSelect
-                data={surveySelectData}
-                accessorKey={{ value: 'value', label: 'label' }}
-                value={{ value: selectedSurvey.id, label: selectedSurvey.name }}
-                onSelect={(v) => {
-                  const item = v as { value: string; label: string };
-                  setSelectedSurvey(MOCK_SURVEYS.find((s) => s.id === item.value) ?? NO_SURVEY_OPTION);
-                }}
-                Label="Survey"
-                variant="outlined"
-              />
-              <WuSelect
-                data={countriesNotSelected.map((c) => ({
-                  value: c.value,
-                  label: `${c.flag} ${c.label}`,
-                }))}
-                accessorKey={{ value: 'value', label: 'label' }}
-                onSelect={(v) => {
-                  const item = v as { value: string };
-                  const country = MULTI_COUNTRY_CATALOG.find((c) => c.value === item.value);
-                  if (country) addCountry(country);
-                }}
-                Label="Country"
-                placeholder="Add a country…"
-                variant="outlined"
-              />
-              <WuSelect
-                data={MOCK_LANGUAGES}
-                accessorKey={{ value: 'value', label: 'label' }}
-                value={selectedLanguage}
-                onSelect={(v) => setSelectedLanguage(v as LanguageOption)}
-                Label="Language"
-                variant="outlined"
-              />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <SectionHeading>How many responses do you need?</SectionHeading>
-            <p className="text-xs text-gray-500">Per country</p>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <CompactNumericInput
-                type="number"
-                min={RESPONSE_PRESETS[0]}
-                max={RESPONSE_PRESETS.at(-1)}
-                value={String(responses)}
-                onChange={(e) => handleResponsesChange(Number(e.target.value) || RESPONSE_PRESETS[0])}
-                aria-label="Number of responses per country"
-              />
-              <div className="min-w-0 flex-1">
-                <input
-                  type="range"
-                  min={0}
-                  max={RESPONSE_PRESETS.length - 1}
-                  step={1}
-                  value={presetIndex >= 0 ? presetIndex : 0}
-                  onChange={(e) =>
-                    setResponses(RESPONSE_PRESETS[Number(e.target.value)] ?? RESPONSE_PRESETS[0])
-                  }
-                  className="h-1.5 w-full cursor-pointer accent-blue-600"
-                  aria-label="Responses slider"
+    <div className="flex min-h-full flex-col bg-[#f4f6f9]">
+      <div className="flex flex-1 flex-col gap-6 px-6 py-5 lg:flex-row lg:items-start lg:gap-8">
+        <div className="min-w-0 flex-1 space-y-5">
+          <WuCard rounded className="overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
+            <div className="space-y-8 p-5 sm:p-6">
+              <div className="space-y-1">
+                <WuInput
+                  variant="title"
+                  placeholder="Enter project name"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value.slice(0, PROJECT_NAME_MAX))}
+                  maxLength={PROJECT_NAME_MAX}
+                  aria-label="Project name"
+                  className="w-full"
                 />
-                <div className="mt-2 flex justify-between text-xs text-gray-500">
-                  {RESPONSE_PRESETS.map((preset) => (
-                    <span key={preset}>{preset.toLocaleString()}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <SectionHeading>What are the key parameters for survey fielding?</SectionHeading>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <FieldLabel>Incidence rate</FieldLabel>
-                <div className="flex items-end gap-2">
-                  <CompactNumericInput
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={incidenceRate}
-                    onChange={(e) => setIncidenceRate(e.target.value)}
-                    aria-label="Incidence rate"
-                  />
-                  <span className="pb-2.5 text-sm text-gray-500">%</span>
-                  <CheckWithAiButton onAnalysisComplete={() => setIsIrModalOpen(true)} />
-                </div>
-              </div>
-              <WuDatePicker
-                Label="Completion date"
-                labelPosition="top"
-                variant="outlined"
-                value={completionDate}
-                onChange={setCompletionDate}
-                minDate={new Date()}
-                formatString="MM/dd/yyyy"
-              />
-              <div>
-                <FieldLabel>Survey length</FieldLabel>
-                <div className="flex items-center gap-2">
-                  <CompactNumericInput
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={surveyLength}
-                    onChange={(e) => setSurveyLength(e.target.value)}
-                    aria-label="Survey length in minutes"
-                  />
-                  <span className="text-sm text-gray-500">min</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Country tabs — between fielding params and audience */}
-          <section className="space-y-0">
-            <CountryTabsBar
-              countries={selectedCountries}
-              activeCode={activeCountryCode}
-              onSelect={setActiveCountryCode}
-              onRemove={removeCountry}
-              availableToAdd={countriesNotSelected}
-              onAdd={addCountry}
-            />
-
-            {activeCountry && selectedCountries.length > 0 && (
-              <div className="space-y-5 rounded-b-lg border border-t-0 border-gray-200 bg-white p-5">
-                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                  <span className="font-medium text-gray-900">
-                    {activeCountry.flag} {activeCountry.label}
+                <div className="flex justify-end">
+                  <span className="text-xs text-[#8c9baa]">
+                    {projectName.length}/{PROJECT_NAME_MAX}
                   </span>
-                  <span>·</span>
-                  <span>CPI ${activeCountry.cpi.toFixed(2)}</span>
-                  <span>·</span>
-                  <span>{responses.toLocaleString()} responses</span>
                 </div>
+              </div>
 
-                {activeCountry.qualificationCategories.length > 0 && (
+              {/* Source */}
+              <section className="space-y-3">
+                <SectionHeading>Source</SectionHeading>
+                <div className="flex flex-wrap gap-4">
+                  <div className="w-full sm:w-52">
+                    <WuSelect
+                      multiple
+                      data={COUNTRY_SELECT_OPTIONS}
+                      accessorKey={{ value: 'value', label: 'label' }}
+                      value={selectedCountryOptions}
+                      onSelect={(v) => {
+                        const items = v as CountrySelectOption[];
+                        const codes = items.map((item) => item.value);
+                        queueMicrotask(() => handleCountrySelectionChange(codes));
+                      }}
+                      Label="Country"
+                      variant="outlined"
+                      className="w-full"
+                      maxContentWidth="13rem"
+                      selectAll={{ enable: true }}
+                      CustomTrigger={countrySelectTrigger}
+                    />
+                  </div>
+                  <div className="w-full sm:w-52">
+                    <WuSelect
+                      data={MOCK_LANGUAGES}
+                      accessorKey={{ value: 'value', label: 'label' }}
+                      value={selectedLanguage}
+                      onSelect={(v) => setSelectedLanguage(v as LanguageOption)}
+                      Label="Language"
+                      variant="outlined"
+                      className="w-full"
+                      maxContentWidth="13rem"
+                    />
+                  </div>
+                  <div className="w-full sm:w-52">
+                    <FieldLabel>Survey</FieldLabel>
+                    <WuButton
+                      variant="outlined"
+                      color="primary"
+                      className="w-full justify-start"
+                      Icon={<span className="wm-add" aria-hidden="true" />}
+                      iconPosition="left"
+                      onClick={() => setIsSurveyModalOpen(true)}
+                    >
+                      <span className="min-w-0 truncate">
+                        {selectedSurvey.id === NO_SURVEY_OPTION.id
+                          ? 'Select survey'
+                          : selectedSurvey.name}
+                      </span>
+                    </WuButton>
+                  </div>
+                </div>
+              </section>
+
+              {/* Responses */}
+              <section className="space-y-3">
+                <SectionHeading>How many responses do you need?</SectionHeading>
+                <div className="flex items-start gap-4">
+                  <div className="audience-responses-input audience-no-spinner shrink-0">
+                    <WuInput
+                      type="number"
+                      variant="outlined"
+                      min={RESPONSE_PRESETS[0]}
+                      max={RESPONSE_PRESETS.at(-1)}
+                      value={responses}
+                      onChange={(e) => handleResponsesChange(Number(e.target.value) || RESPONSE_PRESETS[0])}
+                      aria-label="Number of responses per country"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 pt-2.5">
+                    <ResponsesSlider value={responses} onChange={setResponses} />
+                  </div>
+                </div>
+              </section>
+
+              {/* Fielding parameters */}
+              <section className="space-y-3">
+                <SectionHeading>What are the key parameters for survey fielding?</SectionHeading>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
-                    <p className="mb-2 text-xs font-medium text-gray-500">Available qualifications</p>
-                    <div className="flex flex-wrap gap-2">
-                      {activeCountry.qualificationCategories.map((cat) => (
-                        <WuChip key={cat} size="sm">{cat}</WuChip>
-                      ))}
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      <span className="text-xs font-medium text-[#54606b]">Incidence rate</span>
+                      <WuTooltip content="Expected percentage of panelists who qualify for your survey">
+                        <span
+                          className="wm-info cursor-help text-sm text-[#8c9baa]"
+                          aria-label="Incidence rate help"
+                        />
+                      </WuTooltip>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <WuStepper
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={incidenceRate}
+                        onChange={setIncidenceRate}
+                        aria-label="Incidence rate"
+                      />
+                      <span className="pb-2 text-sm text-[#8c9baa]">%</span>
+                      <CheckWithAiButton onAnalysisComplete={() => setIsIrModalOpen(true)} />
                     </div>
                   </div>
-                )}
 
-                {unavailableForActive.map((c) => (
-                  <div key={c.id} className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    <span className="wm-warning mr-1" aria-hidden="true" />
-                    {c.label} is not available in {activeCountry.label}.
+                  <WuDatePicker
+                    Label="Completion date"
+                    labelPosition="top"
+                    variant="outlined"
+                    value={completionDate}
+                    onChange={setCompletionDate}
+                    minDate={new Date()}
+                  />
+
+                  <div>
+                    <FieldLabel>Survey length</FieldLabel>
+                    <div className="flex items-end gap-2">
+                      <WuStepper
+                        min={1}
+                        max={60}
+                        step={1}
+                        value={surveyLength}
+                        onChange={setSurveyLength}
+                        aria-label="Survey length in minutes"
+                      />
+                      <span className="pb-2 text-sm text-[#8c9baa]">min</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
+                </div>
+              </section>
+            </div>
+          </WuCard>
 
-          <section className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <SectionHeading>
-                Select your audience
-                {activeCountry && (
-                  <span className="ml-2 font-normal text-gray-500">
-                    — {activeCountry.flag} {activeCountry.label}
-                  </span>
-                )}
-              </SectionHeading>
+          {/* Section 2: Select your audience */}
+          <WuCard rounded className="overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
+              <SectionHeading>Select your audience</SectionHeading>
               <WuButton
-                variant="outline"
+                variant="outlined"
                 color="primary"
+                Icon={<span className="wm-add" aria-hidden="true" />}
+                iconPosition="left"
                 onClick={() =>
-                  showToast({ message: 'Custom audience builder coming soon', variant: 'success' })
+                  showToast({
+                    message: 'Custom audience builder coming soon',
+                    variant: 'success',
+                  })
                 }
               >
-                <span className="wm-add" aria-hidden="true" /> Custom audience
+                Custom audience
               </WuButton>
             </div>
 
-            {selectedCountries.length === 0 ? (
-              <p className="text-sm text-gray-500">Add a country tab above to configure audience criteria.</p>
+            {showCountryTabs ? (
+              <WuTab
+                items={countryTabItems}
+                value={activeCountryCode}
+                onValueChange={setActiveCountryCode}
+                className="w-full"
+              />
             ) : (
-              <>
-                <div>
-                  <TemplateSectionLabel>My templates</TemplateSectionLabel>
-                  <div className="flex gap-3 overflow-x-auto pb-1">
-                    {MY_AUDIENCE_TEMPLATES.map((template) => (
-                      <AudienceTemplateCard
-                        key={template.id}
-                        template={template}
-                        variant="compact"
-                        selected={activeTemplateId === template.id}
-                        onSelect={() => setActiveTemplate(template.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <TemplateSectionLabel>Default templates</TemplateSectionLabel>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {DEFAULT_AUDIENCE_TEMPLATES.map((template) => (
-                      <AudienceTemplateCard
-                        key={template.id}
-                        template={template}
-                        variant="featured"
-                        selected={activeTemplateId === template.id}
-                        onSelect={() => setActiveTemplate(template.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
+              <div className="space-y-5 p-5 pt-4 sm:p-6 sm:pt-4">
+                {renderAudienceTemplates(selectedCountries[0] ?? DEFAULT_COUNTRY)}
+              </div>
             )}
-          </section>
+          </WuCard>
         </div>
 
         <div className="lg:sticky lg:top-5 lg:self-start">
@@ -441,11 +563,18 @@ export function CreateProjectForm() {
             completionDate={completionDate}
             onCreateProject={handleCreateProject}
             countryCount={selectedCountries.length}
+            countryBreakdown={countryBreakdown}
           />
         </div>
       </div>
 
       <IrAiEstimateModal open={isIrModalOpen} onOpenChange={setIsIrModalOpen} />
+      <SelectSurveyModal
+        open={isSurveyModalOpen}
+        onOpenChange={setIsSurveyModalOpen}
+        selectedSurveyId={selectedSurvey.id}
+        onSelect={setSelectedSurvey}
+      />
     </div>
   );
 }

@@ -200,7 +200,7 @@ function RequestHistoryTable({
                 <td className="px-4 py-3"><StatusBadge status={request.status} /></td>
                 <td className="px-4 py-3 font-medium text-[#1a2340]">${request.creditAmount.toFixed(2)}</td>
                 <td className="px-4 py-3">
-                  <WuButton variant="outline" color="primary" onClick={() => onCheck(request)}>
+                  <WuButton variant="outlined" color="primary" onClick={() => onCheck(request)}>
                     Check
                   </WuButton>
                 </td>

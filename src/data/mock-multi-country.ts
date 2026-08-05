@@ -142,6 +142,15 @@ export const MULTI_COUNTRY_CATALOG: CountryDefinition[] = [
     unavailableQualificationIds: ['political'],
   },
   {
+    value: 'SG',
+    label: 'Singapore',
+    flag: '🇸🇬',
+    region: 'APAC',
+    cpi: 2.02,
+    qualificationCategories: ['Demographics', 'Healthcare', 'Financial Services', 'Technology'],
+    unavailableQualificationIds: ['political'],
+  },
+  {
     value: 'FR',
     label: 'France',
     flag: '🇫🇷',

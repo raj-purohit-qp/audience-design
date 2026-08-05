@@ -2,6 +2,12 @@ export interface SurveyOption {
   id: string;
   name: string;
   questionCount?: number;
+  folderId?: string;
+}
+
+export interface SurveyFolderOption {
+  value: string;
+  label: string;
 }
 
 export interface CountryOption {
@@ -29,12 +35,88 @@ export const NO_SURVEY_OPTION: SurveyOption = {
   name: "I don't have a survey yet",
 };
 
+export const SURVEY_FOLDERS: SurveyFolderOption[] = [
+  { value: 'all', label: 'All surveys' },
+  { value: 'research', label: 'Research projects' },
+  { value: 'cx', label: 'Customer Experience' },
+  { value: 'brand', label: 'Brand trackers' },
+  { value: 'shared', label: 'Shared with me' },
+];
+
 export const MOCK_SURVEYS: SurveyOption[] = [
   NO_SURVEY_OPTION,
-  { id: 'svy-001', name: 'Consumer Electronics Purchase Intent 2025', questionCount: 24 },
-  { id: 'svy-002', name: 'Healthcare Benefits Satisfaction Study', questionCount: 18 },
-  { id: 'svy-003', name: 'Streaming Service Brand Tracker — Wave 3', questionCount: 32 },
+  {
+    id: 'svy-001',
+    name: 'Consumer Electronics Purchase Intent 2025',
+    questionCount: 24,
+    folderId: 'research',
+  },
+  {
+    id: 'svy-002',
+    name: 'Healthcare Benefits Satisfaction Study',
+    questionCount: 18,
+    folderId: 'cx',
+  },
+  {
+    id: 'svy-003',
+    name: 'Streaming Service Brand Tracker — Wave 3',
+    questionCount: 32,
+    folderId: 'brand',
+  },
+  {
+    id: 'svy-004',
+    name: 'Retail NPS Pulse — Q2 2026',
+    questionCount: 14,
+    folderId: 'cx',
+  },
+  {
+    id: 'svy-005',
+    name: 'Workplace Benefits Benchmark 2026',
+    questionCount: 28,
+    folderId: 'research',
+  },
+  {
+    id: 'svy-006',
+    name: 'Mobile App Onboarding Feedback',
+    questionCount: 12,
+    folderId: 'shared',
+  },
+  {
+    id: 'svy-007',
+    name: 'Global Brand Health Check — Wave 1',
+    questionCount: 40,
+    folderId: 'brand',
+  },
+  {
+    id: 'svy-008',
+    name: 'Post-Purchase Experience Deep Dive',
+    questionCount: 22,
+    folderId: 'cx',
+  },
+  {
+    id: 'svy-009',
+    name: 'Category Usage & Attitudes Study',
+    questionCount: 36,
+    folderId: 'research',
+  },
+  {
+    id: 'svy-010',
+    name: 'Employee Engagement Pulse Survey',
+    questionCount: 20,
+    folderId: 'shared',
+  },
 ];
+
+export function getSurveysForFolder(folderId: string, search = ''): SurveyOption[] {
+  const query = search.trim().toLowerCase();
+  return MOCK_SURVEYS.filter((survey) => {
+    if (survey.id === NO_SURVEY_OPTION.id) return false;
+    const inFolder = folderId === 'all' || survey.folderId === folderId;
+    if (!inFolder) return false;
+    if (!query) return true;
+    return survey.name.toLowerCase().includes(query);
+  });
+}
 
 export const MOCK_COUNTRIES: CountryOption[] = [
   { value: 'US', label: 'United States', flag: '🇺🇸' },
@@ -77,9 +159,9 @@ export const MY_AUDIENCE_TEMPLATES: AudienceTemplate[] = [
 export const DEFAULT_AUDIENCE_TEMPLATES: AudienceTemplate[] = [
   {
     id: 'def-1',
-    name: 'US census',
+    name: 'Census',
     description:
-      'This template targets a sample of 18+ US census representative respondents using gender, age, household income, state and ethnicity quotas based on the latest census data.',
+      'This template targets a sample of 18+ census-representative respondents using gender, age, household income, region and ethnicity quotas based on the latest census data.',
     category: 'default',
     illustration: 'census',
   },
@@ -87,7 +169,7 @@ export const DEFAULT_AUDIENCE_TEMPLATES: AudienceTemplate[] = [
     id: 'def-2',
     name: 'Full time employees',
     description:
-      "This template targets a sample of full-time employees across the United States. It's designed for conducting research on workplace topics, benefits, and employment trends.",
+      "This template targets a sample of full-time employees. It's designed for conducting research on workplace topics, benefits, and employment trends.",
     category: 'default',
     illustration: 'employees',
   },
@@ -101,6 +183,13 @@ export const DEFAULT_AUDIENCE_TEMPLATES: AudienceTemplate[] = [
   },
 ];
 
+/** Display name for a default template in a given country (e.g. "Singapore census") */
+export function templateDisplayName(template: AudienceTemplate, countryLabel?: string): string {
+  if (template.id === 'def-1' && countryLabel) {
+    return `${countryLabel} census`;
+  }
+  return template.name;
+}
 export interface ProjectEstimate {
   costPerInterview: number;
   totalCost: number;
