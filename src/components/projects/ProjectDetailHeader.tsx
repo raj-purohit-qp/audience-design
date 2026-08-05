@@ -106,7 +106,7 @@ export function ProjectDetailHeader({
           {isDraft && (
             <>
               <WuButton
-                variant="outline"
+                variant="outlined"
                 color="primary"
                 Icon={<span className="wm-edit" />}
                 iconPosition="left"
@@ -125,14 +125,14 @@ export function ProjectDetailHeader({
           )}
 
           {project.status === 'Closed' && (
-            <WuButton variant="outline" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
+            <WuButton variant="outlined" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
               Closed
             </WuButton>
           )}
 
           {isLive && (
             <WuButton
-              variant="outline"
+              variant="outlined"
               color="primary"
               Icon={<span className="wm-pause" />}
               iconPosition="left"
@@ -144,7 +144,7 @@ export function ProjectDetailHeader({
 
           {project.status === 'Paused' && (
             <WuButton
-              variant="outline"
+              variant="outlined"
               color="primary"
               Icon={<span className="wm-play-arrow" />}
               iconPosition="left"
@@ -156,7 +156,7 @@ export function ProjectDetailHeader({
 
           {(isLive || project.status === 'Paused') && (
             <WuButton
-              variant="outline"
+              variant="outlined"
               color="error"
               Icon={<span className="wm-cancel" />}
               iconPosition="left"

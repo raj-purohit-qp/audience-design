@@ -87,7 +87,7 @@ export function PendingRequestsTable({
             <div className="request-row-actions flex items-center justify-end gap-2 opacity-0 transition-opacity duration-150">
               <WuButton
                 type="button"
-                variant="outline"
+                variant="outlined"
                 color="primary"
                 size="sm"
                 onClick={() => onViewRequest(orgId)}

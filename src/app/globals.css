@@ -15,6 +15,34 @@
   padding-inline: 8px;
 }
 
+.audience-responses-input [data-slot='wu-input-group'] {
+  width: 84px;
+  height: 36px;
+}
+
+.audience-responses-input input {
+  box-sizing: border-box;
+  width: 84px !important;
+  height: 36px !important;
+  min-height: 36px;
+  max-width: 84px;
+  padding-inline: 10px;
+}
+
+.audience-no-spinner input[type='number']::-webkit-outer-spin-button,
+.audience-no-spinner input[type='number']::-webkit-inner-spin-button,
+input.audience-no-spinner[type='number']::-webkit-outer-spin-button,
+input.audience-no-spinner[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.audience-no-spinner input[type='number'],
+input.audience-no-spinner[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .audience-header-breadcrumb-link {
   color: rgb(var(--wu-blue-p)) !important;
 }

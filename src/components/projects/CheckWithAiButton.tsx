@@ -53,7 +53,7 @@ export function CheckWithAiButton({ onAnalysisComplete, disabled }: CheckWithAiB
       <WuTooltip content={<TooltipContent />} position="top" showArrow>
         <WuButton
           type="button"
-          variant="outline"
+          variant="outlined"
           color="primary"
           size="md"
           Icon={!isAnalyzing ? <span className="wm-auto-awesome text-base" aria-hidden="true" /> : undefined}

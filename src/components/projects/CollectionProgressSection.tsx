@@ -77,7 +77,7 @@ export function CollectionProgressSection({
           </div>
           {showPush && onPush ? (
             <WuButton
-              variant="outline"
+              variant="outlined"
               color="primary"
               size="sm"
               className="shrink-0"

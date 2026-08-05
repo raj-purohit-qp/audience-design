@@ -71,21 +71,21 @@ export function MultiCountryProjectHeader({
           )}
           {project.status === 'Live' && (
             <>
-              <WuButton variant="outline" color="primary" Icon={<span className="wm-pause" />} iconPosition="left" onClick={onPause}>
+              <WuButton variant="outlined" color="primary" Icon={<span className="wm-pause" />} iconPosition="left" onClick={onPause}>
                 Pause survey
               </WuButton>
-              <WuButton variant="outline" color="error" Icon={<span className="wm-cancel" />} iconPosition="left" onClick={onClose}>
+              <WuButton variant="outlined" color="error" Icon={<span className="wm-cancel" />} iconPosition="left" onClick={onClose}>
                 Close survey
               </WuButton>
             </>
           )}
           {project.status === 'Paused' && (
-            <WuButton variant="outline" color="primary" Icon={<span className="wm-play-arrow" />} iconPosition="left" onClick={onResume}>
+            <WuButton variant="outlined" color="primary" Icon={<span className="wm-play-arrow" />} iconPosition="left" onClick={onResume}>
               Resume survey
             </WuButton>
           )}
           {project.status === 'Closed' && (
-            <WuButton variant="outline" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
+            <WuButton variant="outlined" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
               Closed
             </WuButton>
           )}

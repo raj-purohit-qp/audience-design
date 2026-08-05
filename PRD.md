@@ -118,7 +118,28 @@ A compact calculator beside the settings form on each tab. Preview values seed f
 
 ---
 
-## Push project (Live)
+## Create project
+
+**URL:** `/projects/create`
+**Purpose:** Configure a new Audience project and review pricing before create.
+**Layout:** Two-column — scrollable form (left) + sticky **Your estimate** panel (right).
+
+**Form sections (top → bottom)**
+1. **Project name** — WuInput title field, 100-character limit
+2. **Source** — Country (WuSelect), Language (WuSelect), Survey (WuMenu + WuButton “Select survey”)
+3. **How many responses do you need?** — WuStepper + response preset WuChips (and range control for quick scrubbing)
+4. **What are the key parameters for survey fielding?** — Incidence rate (WuStepper + Check with AI), Completion date (WuDatePicker), Survey length (WuStepper)
+5. **Countries** — WuButton country tabs + Add country (WuMenu); per-country qualifications shown in a WuCard
+6. **Select your audience** — Custom audience (WuButton) + My templates / Default templates as selectable WuCards
+
+**Your estimate**
+- Respondents, Cost per completion, Est. completion date, Total
+- Feasibility WuChip
+- **Create project** primary action
+- Self-service vs managed service pricing note
+
+**Actions:** Back → projects list; Create project → saves mock project and opens detail.
+
 
 **Purpose:** When a Live project is not gaining traffic as expected, users can **Push** the project to accelerate collection.
 
@@ -135,3 +156,25 @@ A compact calculator beside the settings form on each tab. Preview values seed f
 
 **Demo seeding**
 - Some Live list projects start with 0, 1, or 2 same-CPI pushes so both allowed and locked Same CPI states are visible.
+
+---
+
+## Multi-country Overview — country view
+
+**Purpose:** On a multi-country project **Overview**, switch between aggregate (**All**) and a single country to inspect metrics and collection progress.
+
+**Availability:** Multi-country project detail → **Overview** tab.
+
+**Country dropdown**
+- Default selection: **All**
+- Options: **All**, then each launched country (flag + label)
+- Changing the selection updates metric cards and **Collection progress** for that scope
+
+**When All is selected**
+- Metrics and Collection progress are project-wide aggregates
+- An additional **Countries** container appears above **Launch criteria & audience configuration**, listing each launched country with status and collection progress
+
+**When a country is selected**
+- Metrics and Collection progress reflect that country’s child project only
+- The **Countries** progress container is hidden
+- Launch criteria reflect that country’s geography and any country overrides
