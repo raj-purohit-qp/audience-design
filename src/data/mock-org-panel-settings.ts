@@ -80,6 +80,16 @@ export interface B2BPricingSettings {
   margin: number;
 }
 
+/** Multi-source launch — org-level launch capability toggles */
+export interface MultiSourceLaunchSettings {
+  /** When on, Account managers can launch projects with community as a sample source */
+  launchWithCommunity: boolean;
+}
+
+export const DEFAULT_MULTI_SOURCE_LAUNCH: MultiSourceLaunchSettings = {
+  launchWithCommunity: false,
+};
+
 export interface ApprovalAttachment {
   id: string;
   name: string;
@@ -119,6 +129,7 @@ export interface PendingApproval {
     specializedSample: SpecializedSampleSettings;
     b2bPricing: B2BPricingSettings;
     instantAnswers: PanelSettingsSection;
+    multiSourceLaunch: MultiSourceLaunchSettings;
   };
 }
 
@@ -135,6 +146,8 @@ export interface OrganizationPanelSettings {
   /** B2B project pricing defaults for this account */
   b2bPricing: B2BPricingSettings;
   instantAnswers: PanelSettingsSection;
+  /** Multi-source launch capability for this account */
+  multiSourceLaunch: MultiSourceLaunchSettings;
   approvalStatus: ApprovalStatus;
   pendingApproval: PendingApproval | null;
   /** Chronological history of approval requests (newest first) */
@@ -300,6 +313,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
       defaultCustomVariable: 'Custom2',
     },
+    multiSourceLaunch: {
+      ...DEFAULT_MULTI_SOURCE_LAUNCH,
+    },
     approvalStatus: 'none',
     pendingApproval: null,
     requestLog: [
@@ -365,6 +381,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
       defaultCustomVariable: 'Custom1',
     },
+    multiSourceLaunch: {
+      ...DEFAULT_MULTI_SOURCE_LAUNCH,
+    },
     approvalStatus: 'none',
     pendingApproval: null,
     requestLog: [
@@ -418,6 +437,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
       defaultCustomVariable: 'Custom1',
     },
+    multiSourceLaunch: {
+      ...DEFAULT_MULTI_SOURCE_LAUNCH,
+    },
     approvalStatus: 'pending',
     pendingApproval: {
       requestLogId: 'rl-305112-pending',
@@ -442,6 +464,10 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
 
           defaultCustomVariable: 'Custom1',
+        },
+        multiSourceLaunch: {
+          ...DEFAULT_MULTI_SOURCE_LAUNCH,
+          launchWithCommunity: true,
         },
       },
     },
@@ -479,6 +505,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
       defaultCustomVariable: 'Custom3',
     },
+    multiSourceLaunch: {
+      ...DEFAULT_MULTI_SOURCE_LAUNCH,
+    },
     approvalStatus: 'pending',
     pendingApproval: {
       requestLogId: 'rl-412890-pending',
@@ -504,6 +533,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
 
           defaultCustomVariable: 'Custom3',
+        },
+        multiSourceLaunch: {
+          ...DEFAULT_MULTI_SOURCE_LAUNCH,
         },
       },
     },
@@ -543,6 +575,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
       defaultCustomVariable: 'Custom4',
     },
+    multiSourceLaunch: {
+      ...DEFAULT_MULTI_SOURCE_LAUNCH,
+    },
     approvalStatus: 'pending',
     pendingApproval: {
       requestLogId: 'rl-501234-pending',
@@ -568,6 +603,9 @@ export const MOCK_ORG_SETTINGS: Record<string, OrganizationPanelSettings> = {
 
 
           defaultCustomVariable: 'Custom4',
+        },
+        multiSourceLaunch: {
+          ...DEFAULT_MULTI_SOURCE_LAUNCH,
         },
       },
     },
@@ -977,6 +1015,7 @@ export function submitForApproval(
             specializedSample: JSON.parse(JSON.stringify(settings.specializedSample)),
             b2bPricing: JSON.parse(JSON.stringify(settings.b2bPricing)),
             instantAnswers: JSON.parse(JSON.stringify(settings.instantAnswers)),
+            multiSourceLaunch: JSON.parse(JSON.stringify(settings.multiSourceLaunch)),
           },
         },
         requestLog: [logEntry, ...(existing.requestLog ?? [])],
@@ -1025,6 +1064,7 @@ export function approvePendingChanges(
     specializedSample: SpecializedSampleSettings;
     b2bPricing: B2BPricingSettings;
     instantAnswers: PanelSettingsSection;
+    multiSourceLaunch: MultiSourceLaunchSettings;
   },
 ): Promise<OrganizationPanelSettings> {
   return new Promise((resolve, reject) => {
@@ -1042,6 +1082,7 @@ export function approvePendingChanges(
         specializedSample: JSON.parse(JSON.stringify(draft.specializedSample)),
         b2bPricing: JSON.parse(JSON.stringify(draft.b2bPricing)),
         instantAnswers: JSON.parse(JSON.stringify(draft.instantAnswers)),
+        multiSourceLaunch: JSON.parse(JSON.stringify(draft.multiSourceLaunch)),
         approvalStatus: 'none',
         pendingApproval: null,
         requestLog: updateRequestLogStatus(

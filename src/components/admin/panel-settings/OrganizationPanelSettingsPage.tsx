@@ -9,6 +9,7 @@ import { detailPageGutter } from '@/components/ui/page-layout';
 import { PanelSettingsFields } from '@/components/admin/panel-settings/PanelSettingsFields';
 import { SpecializedSampleFields } from '@/components/admin/panel-settings/SpecializedSampleFields';
 import { B2BPricingFields } from '@/components/admin/panel-settings/B2BPricingFields';
+import { MultiSourceLaunchFields } from '@/components/admin/panel-settings/MultiSourceLaunchFields';
 import { PricingPreview } from '@/components/admin/panel-settings/PricingPreview';
 import { ApprovalRequestNotes } from '@/components/admin/panel-settings/ApprovalRequestNotes';
 import { RequestLogSection } from '@/components/admin/panel-settings/RequestLogSection';
@@ -75,11 +76,13 @@ function settingsEqual(a: OrganizationPanelSettings, b: OrganizationPanelSetting
       specializedSample: a.specializedSample,
       b2bPricing: a.b2bPricing,
       instantAnswers: a.instantAnswers,
+      multiSourceLaunch: a.multiSourceLaunch,
     }) ===
     JSON.stringify({
       specializedSample: b.specializedSample,
       b2bPricing: b.b2bPricing,
       instantAnswers: b.instantAnswers,
+      multiSourceLaunch: b.multiSourceLaunch,
     })
   );
 }
@@ -93,6 +96,7 @@ function applyDraftToSettings(
     specializedSample: JSON.parse(JSON.stringify(base.pendingApproval.draft.specializedSample)),
     b2bPricing: JSON.parse(JSON.stringify(base.pendingApproval.draft.b2bPricing)),
     instantAnswers: JSON.parse(JSON.stringify(base.pendingApproval.draft.instantAnswers)),
+    multiSourceLaunch: JSON.parse(JSON.stringify(base.pendingApproval.draft.multiSourceLaunch)),
   };
 }
 
@@ -347,6 +351,7 @@ export function OrganizationPanelSettingsPage() {
         specializedSample: updated.specializedSample,
         b2bPricing: updated.b2bPricing,
         instantAnswers: updated.instantAnswers,
+        multiSourceLaunch: updated.multiSourceLaunch,
       })));
       setSettings(applyDraftToSettings(updated));
       setApprovalComment(updated.pendingApproval?.comment ?? '');
@@ -377,6 +382,7 @@ export function OrganizationPanelSettingsPage() {
         specializedSample: settings.specializedSample,
         b2bPricing: settings.b2bPricing,
         instantAnswers: settings.instantAnswers,
+        multiSourceLaunch: settings.multiSourceLaunch,
       });
       setApprovalComment('');
       setApprovalAttachments([]);
@@ -543,6 +549,35 @@ export function OrganizationPanelSettingsPage() {
                 </aside>
               )}
             </div>
+          </div>
+        ),
+      },
+      {
+        value: 'multi_source_launch',
+        Trigger: 'Multi-source launch',
+        Content: (
+          <div className="pt-5">
+            <p className="mb-4 font-['Fira_Sans',sans-serif] text-[14px] font-normal text-[#1a2340]">
+              Multi-source launch
+            </p>
+            <p className="mb-4 text-sm text-[#8c9baa]">
+              Control whether this account can launch projects with community as an additional
+              sample source.
+            </p>
+            <MultiSourceLaunchFields
+              section={settings.multiSourceLaunch}
+              readOnly={fieldsReadOnly}
+              onChange={(updates) =>
+                setSettings((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        multiSourceLaunch: { ...prev.multiSourceLaunch, ...updates },
+                      }
+                    : prev,
+                )
+              }
+            />
           </div>
         ),
       },
