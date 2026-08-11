@@ -41,7 +41,7 @@
 - **Uber admin home:** **Pending requests** table first, then Search, then **Organization detail** for the Uber admin’s own account.
 - **Other org / View request:** Full org Panel settings with proposed draft values, comment/docs, and Request log.
 - **Organization detail** table (Users-style): Org ID, Org name, User email, License, Account manager.
-- **Settings tabs (in order):** Specialized sample → **B2B** → Instant answers.
+- **Settings tabs (in order):** Specialized sample → **B2B** → Instant answers → **Multi-source launch**.
 **Actions:** Search by Organization ID (both roles), Submit for approval (Admin), View request / Approve from inbox (Uber admin), Save changes / Reject request with required reason (Uber admin on a pending request).
 
 #### Access & approval
@@ -59,7 +59,7 @@
 - Uber admins can adjust field values on a pending request before approving.
 - Rejecting a request requires a **Reason** from the business owner (Uber admin). That reason is stored on the **Request log** so Admins can see why it was rejected.
 - The **Request log** shows every request with Account manager, Date, Pricing model, Status (Pending / Approved / Rejected), and Reason (for rejections).
-- Approval drafts include **Specialized sample**, **B2B**, and **Instant answers** settings together.
+- Approval drafts include **Specialized sample**, **B2B**, **Instant answers**, and **Multi-source launch** settings together.
 
 #### Specialized sample — Pricing models
 
@@ -86,6 +86,16 @@ Pricing preview: Selling CPI = Base CPI × (1 + Margin %). Admins and Uber admin
 #### Instant answers
 
 Third settings tab. Fields: Selling CPI, Default variable. Always uses the platform default panel vendor (no vendor selector).
+
+#### Multi-source launch
+
+Fourth settings tab. Account managers configure multi-source launch capability for the organization.
+
+| Field | Behavior |
+|------|----------|
+| **Launch with community** | WuToggle. When on, the account can launch Audience projects using community as an additional sample source. Default is off. |
+
+Edits follow the same Admin submit-for-approval / Uber admin approve-or-reject rules as other panel settings.
 
 #### Pricing preview
 
