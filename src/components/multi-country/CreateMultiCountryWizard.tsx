@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
 import { CompactNumericInput } from '@/components/ui/CompactNumericInput';
 import { CheckWithAiButton } from '@/components/projects/CheckWithAiButton';
-import { IrAiEstimateModal } from '@/components/projects/IrAiEstimateModal';
+import { IrAiWorkflowModal } from '@/components/projects/IrAiWorkflowModal';
 import { CountryMultiSelect } from '@/components/multi-country/CountryMultiSelect';
 import { CountryPlanningStep } from '@/components/multi-country/CountryPlanningStep';
 import { AudienceConfigStep } from '@/components/multi-country/AudienceConfigStep';
@@ -29,6 +29,7 @@ import {
   type CountryPlan,
 } from '@/data/mock-multi-country';
 import { buildMultiCountryProject, saveMultiCountryProject } from '@/data/audience-project-store';
+import { markAudienceProjectLaunched } from '@/data/mock-home';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -136,6 +137,7 @@ export function CreateMultiCountryWizard() {
       completionDate,
     });
     saveMultiCountryProject(project);
+    markAudienceProjectLaunched();
     showToast({ message: 'Multi-country project launched!', variant: 'success' });
     router.push(`/projects/${project.id}`);
   }
@@ -282,7 +284,7 @@ export function CreateMultiCountryWizard() {
                         aria-label="Incidence rate"
                       />
                       <span className="pb-2.5 text-sm text-gray-500">%</span>
-                      <CheckWithAiButton onAnalysisComplete={() => setIsIrModalOpen(true)} />
+                      <CheckWithAiButton onClick={() => setIsIrModalOpen(true)} />
                     </div>
                   </div>
                   <WuDatePicker
@@ -338,7 +340,17 @@ export function CreateMultiCountryWizard() {
         />
       </div>
 
-      <IrAiEstimateModal open={isIrModalOpen} onOpenChange={setIsIrModalOpen} />
+      <IrAiWorkflowModal
+        open={isIrModalOpen}
+        onOpenChange={setIsIrModalOpen}
+        survey={selectedSurvey}
+        onSurveyChange={setSelectedSurvey}
+        appliedCriteria={[]}
+        hasCriteriaAdded={false}
+        onEditCriteria={() => undefined}
+        onAddCriteria={() => undefined}
+        onApplyIr={() => undefined}
+      />
     </div>
   );
 }

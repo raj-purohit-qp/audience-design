@@ -29,10 +29,43 @@
 
 ## Screens & Flows
 
+### Home
+
+**URL:** `/home`
+**Nav label:** Home (top of sidebar)
+**Page heading:** Audience
+
+Home has two states:
+
+#### Empty state (no projects yet)
+**Purpose:** First-time choice screen before any project exists — pick Audience or Synthetic Data.
+**Visibility:** Only when the account has **no created projects**.
+**Layout:** Two product cards (Specialized sample / Instant answers / Explore Synthetic Data).
+
+#### Dashboard (has projects)
+**Purpose:** Unified landing with entry points, recent projects, and a combined projects feed.
+**Visibility:** When the account has **any created projects** (seed mock list counts in the prototype).
+**Layout:**
+- Page header: *Your research hub — real respondents & synthetic data in one place*
+- Two entry cards: **Audience** (+ Create project, active projects chip) and **Synthetic Data** (Explore Synthetic, datasets chip)
+- **Recent Projects** row of quick-access cards
+- Tabs: **Audience · Real Responses** | **Synthetic Data** with a projects table (Solution, Project name, Status, Progress, Completes, Total cost, Last active)
+- Footer with credit balance
+
+**Demo:** Force empty chooser with `sessionStorage.setItem('audience-empty-home','1')` then reload `/home`.
+
+### Specialized sample
+
+**URL:** `/projects`
+**Nav label:** Specialized sample (Audience group in sidebar)
+**Page heading:** Specialized sample
+**Purpose:** List and manage Specialized sample projects (formerly labeled Projects).
+**Layout:** Page header with **Create project**; search; projects table with status, progress, cost columns, and row actions.
+
 ### Organization panel settings
 
 **URL:** `/admin/panel-settings`
-**Nav label:** Panel settings (sidebar footer, directly above Trash)
+**Nav label:** Panel settings (sidebar footer, above Admin and Settings)
 **Purpose:** Configure organization-level pricing, vendor, and integration defaults for Audience projects.
 **Layout:** Full-width content header bar (same pattern as Projects): left-aligned **Panel settings** title; top-right WickUI actions — **Reset** / **Cancel** (`variant="secondary"`), **Submit for approval** or **Save changes** (`variant="primary"`), **Reject request** (`variant="outline"` `color="error"`). Use WuButton `loading` for in-progress states. Compact **Demo role** selector sits inline next to the page title. Dropdowns are sized to their longest option. All UI labels use **sentence case**.
 **Data shown:**

@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
 import type { IWuSliderMark, IWuTabItem } from '@npm-questionpro/wick-ui-lib';
 import { AudienceTemplateCard } from '@/components/projects/AudienceTemplateCard';
 import { CheckWithAiButton } from '@/components/projects/CheckWithAiButton';
-import { IrAiEstimateModal } from '@/components/projects/IrAiEstimateModal';
+import { IrAiWorkflowModal } from '@/components/projects/IrAiWorkflowModal';
 import { SelectSurveyModal } from '@/components/projects/SelectSurveyModal';
 import {
   ProjectEstimatePanel,
@@ -17,6 +17,7 @@ import {
   DEFAULT_AUDIENCE_TEMPLATES,
   MOCK_LANGUAGES,
   MY_AUDIENCE_TEMPLATES,
+  MOCK_SURVEYS,
   NO_SURVEY_OPTION,
   RESPONSE_PRESETS,
   calculateEstimate,
@@ -33,6 +34,8 @@ import {
   type CountryDefinition,
 } from '@/data/mock-multi-country';
 import { buildMultiCountryProject, saveMultiCountryProject } from '@/data/audience-project-store';
+import { markAudienceProjectLaunched } from '@/data/mock-home';
+import { US_APPLIED_CRITERIA, US_EV_SURVEY } from '@/data/mock-ir-ai';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -72,7 +75,9 @@ const WuTab = dynamic(
 );
 
 const PROJECT_NAME_MAX = 100;
-const DEFAULT_COUNTRY = MULTI_COUNTRY_CATALOG.find((c) => c.value === 'SG') ?? MULTI_COUNTRY_CATALOG[0];
+const DEFAULT_COUNTRY = MULTI_COUNTRY_CATALOG.find((c) => c.value === 'US') ?? MULTI_COUNTRY_CATALOG[0];
+const DEFAULT_SURVEY =
+  MOCK_SURVEYS.find((survey) => survey.id === US_EV_SURVEY.id) ?? US_EV_SURVEY;
 
 function CountryNameWithCode({ label, code }: { label: string; code: string }) {
   return (
@@ -149,14 +154,16 @@ function ResponsesSlider({
 export function CreateProjectForm() {
   const router = useRouter();
   const { showToast } = useWuShowToast();
+  const audienceSectionRef = useRef<HTMLDivElement>(null);
 
   const [projectName, setProjectName] = useState('');
-  const [selectedSurvey, setSelectedSurvey] = useState<SurveyOption>(NO_SURVEY_OPTION);
+  const [selectedSurvey, setSelectedSurvey] = useState<SurveyOption>(DEFAULT_SURVEY);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(MOCK_LANGUAGES[0]);
   const [selectedCountries, setSelectedCountries] = useState<CountryDefinition[]>([DEFAULT_COUNTRY]);
   const [activeCountryCode, setActiveCountryCode] = useState(DEFAULT_COUNTRY.value);
   const [responses, setResponses] = useState<number>(RESPONSE_PRESETS[0]);
   const [incidenceRate, setIncidenceRate] = useState(50);
+  const [incidenceRateFromAi, setIncidenceRateFromAi] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date('2026-08-05'));
   const [surveyLength, setSurveyLength] = useState(10);
   const [templatesByCountry, setTemplatesByCountry] = useState<Record<string, string | null>>({
@@ -300,6 +307,17 @@ export function CreateProjectForm() {
     );
   }
 
+  function scrollToAudienceSection() {
+    audienceSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  const hasAudienceCriteria = useMemo(
+    () => selectedCountries.some((country) => Boolean(templatesByCountry[country.value])),
+    [selectedCountries, templatesByCountry],
+  );
+
+  const appliedCriteria = hasAudienceCriteria ? US_APPLIED_CRITERIA : [];
+
   function handleCreateProject() {
     if (selectedCountries.length === 0) {
       showToast({ message: 'Select at least one country', variant: 'error' });
@@ -327,6 +345,7 @@ export function CreateProjectForm() {
     });
 
     saveMultiCountryProject(project);
+    markAudienceProjectLaunched();
     showToast({ message: 'Audience project created', variant: 'success' });
     router.push(`/projects/${project.id}`);
   }
@@ -367,7 +386,7 @@ export function CreateProjectForm() {
   }));
 
   return (
-    <div className="flex min-h-full flex-col bg-[#f4f6f9]">
+    <div className="flex min-h-full flex-col bg-white">
       <div className="flex flex-1 flex-col gap-6 px-6 py-5 lg:flex-row lg:items-start lg:gap-8">
         <div className="min-w-0 flex-1 space-y-5">
           <WuCard rounded className="overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
@@ -479,17 +498,23 @@ export function CreateProjectForm() {
                         />
                       </WuTooltip>
                     </div>
-                    <div className="flex flex-wrap items-end gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <WuStepper
                         min={1}
                         max={100}
                         step={1}
                         value={incidenceRate}
-                        onChange={setIncidenceRate}
+                        onChange={(value) => {
+                          setIncidenceRate(value);
+                          setIncidenceRateFromAi(false);
+                        }}
                         aria-label="Incidence rate"
                       />
-                      <span className="pb-2 text-sm text-[#8c9baa]">%</span>
-                      <CheckWithAiButton onAnalysisComplete={() => setIsIrModalOpen(true)} />
+                      <span className="text-sm text-[#8c9baa]">%</span>
+                      <CheckWithAiButton
+                        aiEstimated={incidenceRateFromAi}
+                        onClick={() => setIsIrModalOpen(true)}
+                      />
                     </div>
                   </div>
 
@@ -522,6 +547,7 @@ export function CreateProjectForm() {
           </WuCard>
 
           {/* Section 2: Select your audience */}
+          <div ref={audienceSectionRef}>
           <WuCard rounded className="overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
             <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
               <SectionHeading>Select your audience</SectionHeading>
@@ -554,6 +580,7 @@ export function CreateProjectForm() {
               </div>
             )}
           </WuCard>
+          </div>
         </div>
 
         <div className="lg:sticky lg:top-5 lg:self-start">
@@ -568,7 +595,31 @@ export function CreateProjectForm() {
         </div>
       </div>
 
-      <IrAiEstimateModal open={isIrModalOpen} onOpenChange={setIsIrModalOpen} />
+      <IrAiWorkflowModal
+        open={isIrModalOpen}
+        onOpenChange={setIsIrModalOpen}
+        survey={selectedSurvey}
+        onSurveyChange={setSelectedSurvey}
+        appliedCriteria={appliedCriteria}
+        hasCriteriaAdded={hasAudienceCriteria}
+        onEditCriteria={() => {
+          scrollToAudienceSection();
+          showToast({ message: 'Update audience criteria below', variant: 'success' });
+        }}
+        onAddCriteria={() => {
+          scrollToAudienceSection();
+          showToast({ message: 'Add audience criteria below', variant: 'success' });
+        }}
+        onApplyIr={(rate, fromAi) => {
+          setIncidenceRate(Math.max(0, Math.min(100, Math.round(rate))));
+          setIncidenceRateFromAi(fromAi);
+          setIsIrModalOpen(false);
+          showToast({
+            message: fromAi ? 'AI estimated IR applied' : 'Incidence rate updated',
+            variant: 'success',
+          });
+        }}
+      />
       <SelectSurveyModal
         open={isSurveyModalOpen}
         onOpenChange={setIsSurveyModalOpen}

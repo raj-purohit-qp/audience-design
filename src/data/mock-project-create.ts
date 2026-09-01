@@ -46,6 +46,12 @@ export const SURVEY_FOLDERS: SurveyFolderOption[] = [
 export const MOCK_SURVEYS: SurveyOption[] = [
   NO_SURVEY_OPTION,
   {
+    id: 'svy-ev-001',
+    name: 'Electric Vehicle Ownership Study',
+    questionCount: 24,
+    folderId: 'research',
+  },
+  {
     id: 'svy-001',
     name: 'Consumer Electronics Purchase Intent 2025',
     questionCount: 24,
