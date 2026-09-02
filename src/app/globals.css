@@ -111,31 +111,17 @@ input.audience-no-spinner[type='number'] {
   padding-bottom: 1rem;
 }
 
-@keyframes ir-ai-shimmer-sweep {
-  0% {
-    transform: translateX(-150%) skewX(-22deg);
-  }
-  100% {
-    transform: translateX(250%) skewX(-22deg);
-  }
-}
-
-@keyframes ir-ai-host-shimmer {
-  0% {
-    background-position: 120% 0;
-  }
-  100% {
-    background-position: -120% 0;
-  }
-}
-
 @keyframes ir-ai-flat-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(var(--wu-blue-p) / 0.28);
+    box-shadow:
+      inset 0 0 0 1px rgb(27 135 230 / 0.22),
+      0 0 0 0 rgb(27 135 230 / 0.28);
   }
   50% {
-    box-shadow: 0 0 0 3px rgb(var(--wu-blue-p) / 0.2);
+    box-shadow:
+      inset 0 0 0 1px rgb(27 135 230 / 0.4),
+      0 0 0 3px rgb(27 135 230 / 0.22);
   }
 }
 
@@ -166,13 +152,26 @@ input.audience-no-spinner[type='number'] {
   width: 56px;
   height: 56px;
   border-radius: 9999px;
-  background-color: rgb(var(--wu-blue-p) / 0.08);
-  animation: ir-ai-processing-glow 2.4s ease-in-out infinite;
+  background-color: rgb(27 135 230 / 0.1);
+  animation:
+    ir-ai-processing-glow 2.4s ease-in-out infinite,
+    ir-ai-processing-breathe 1.8s ease-in-out infinite;
 }
 
 .ir-ai-icon--analyzing {
   animation: ir-ai-analyzing 1.8s ease-in-out infinite;
   transform-origin: center;
+  will-change: transform, opacity;
+}
+
+@keyframes ir-ai-processing-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
 }
 
 @keyframes ir-ai-analyzing {
@@ -182,33 +181,47 @@ input.audience-no-spinner[type='number'] {
     opacity: 1;
   }
   25% {
-    transform: scale(1.1) rotate(-8deg);
-    opacity: 0.82;
+    transform: scale(1.12) rotate(-10deg);
+    opacity: 0.88;
   }
   50% {
-    transform: scale(1.14) rotate(0deg);
+    transform: scale(1.16) rotate(0deg);
     opacity: 1;
   }
   75% {
-    transform: scale(1.1) rotate(8deg);
-    opacity: 0.82;
+    transform: scale(1.12) rotate(10deg);
+    opacity: 0.88;
   }
 }
 
 @keyframes ir-ai-processing-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(var(--wu-blue-p) / 0.2);
+    box-shadow: 0 0 0 0 rgb(27 135 230 / 0.35);
   }
   50% {
-    box-shadow: 0 0 0 6px rgb(var(--wu-blue-p) / 0.08);
+    box-shadow: 0 0 0 8px rgb(27 135 230 / 0.12);
+  }
+}
+
+@keyframes ir-ai-shimmer-sweep {
+  0% {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(280%) skewX(-18deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ir-ai-processing-icon-wrap,
-  .ir-ai-icon--analyzing {
+  .ir-ai-icon--analyzing,
+  .ir-ai-estimated-badge__shine-band {
     animation: none;
+  }
+
+  .ir-ai-estimated-badge__shine {
+    display: none;
   }
 }
 
@@ -232,45 +245,12 @@ input.audience-no-spinner[type='number'] {
   display: inline-grid;
   overflow: hidden;
   border-radius: var(--wu-radius);
-  /* Secondary WuButton bg is transparent — host carries tint so white shine is visible */
-  background-color: rgb(var(--wu-blue-p) / 0.1);
-  background-image: linear-gradient(
-    105deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255, 255, 255, 0.55) 46%,
-    rgba(255, 255, 255, 1) 50%,
-    rgba(255, 255, 255, 0.55) 54%,
-    transparent 62%,
-    transparent 100%
-  );
-  background-size: 280% 100%;
-  background-repeat: no-repeat;
-  animation:
-    ir-ai-host-shimmer 2.4s ease-in-out infinite,
-    ir-ai-flat-glow 2.8s ease-in-out infinite;
+  background-color: rgb(27 135 230 / 0.1);
+  animation: ir-ai-flat-glow 2.8s ease-in-out infinite;
 }
 
 .ir-ai-estimated-badge-host::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: inherit;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.35) 42%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(255, 255, 255, 0.35) 58%,
-    transparent 100%
-  );
-  background-size: 220% 100%;
-  background-repeat: no-repeat;
-  mix-blend-mode: soft-light;
-  animation: ir-ai-host-shimmer 2.4s ease-in-out infinite;
+  display: none;
 }
 
 .ir-ai-estimated-badge {
@@ -282,12 +262,42 @@ input.audience-no-spinner[type='number'] {
   inline-size: auto !important;
 }
 
-.ir-ai-estimated-badge-host:has(.ir-ai-estimated-badge:disabled) {
-  animation: none;
-  background-image: none;
+.ir-ai-estimated-badge__shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  grid-area: 1 / 1;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
-.ir-ai-estimated-badge-host:has(.ir-ai-estimated-badge:disabled)::after {
+.ir-ai-estimated-badge__shine-band {
+  position: absolute;
+  top: -30%;
+  left: 0;
+  width: 55%;
+  height: 160%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 22%,
+    rgba(255, 255, 255, 0.85) 42%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.85) 58%,
+    rgba(255, 255, 255, 0.35) 78%,
+    transparent 100%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.95;
+  animation: ir-ai-shimmer-sweep 2.2s ease-in-out infinite;
+}
+
+.ir-ai-estimated-badge-host:has(.ir-ai-estimated-badge:disabled) {
+  animation: none;
+}
+
+.ir-ai-estimated-badge-host:has(.ir-ai-estimated-badge:disabled) .ir-ai-estimated-badge__shine {
   display: none;
 }
 
@@ -302,13 +312,8 @@ input.audience-no-spinner[type='number'] {
 
 @media (prefers-reduced-motion: reduce) {
   .ir-ai-estimated-badge-host,
-  .ir-ai-estimated-badge-host::after,
   .ir-ai-estimated-badge__icon {
     animation: none;
-  }
-
-  .ir-ai-estimated-badge-host::after {
-    display: none;
   }
 }
 

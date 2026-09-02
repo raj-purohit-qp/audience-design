@@ -70,6 +70,9 @@ function AiEstimatedButton({
         >
           AI estimated
         </WuButton>
+        <span className="ir-ai-estimated-badge__shine" aria-hidden="true">
+          <span className="ir-ai-estimated-badge__shine-band" />
+        </span>
       </div>
     </div>
   );
