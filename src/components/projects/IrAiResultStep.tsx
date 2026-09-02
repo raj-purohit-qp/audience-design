@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { AiIcon } from '@/components/projects/AiIcon';
 import dynamic from 'next/dynamic';
 import {

@@ -79,7 +79,7 @@ export const HOME_PRODUCT_CARDS: HomeProductCard[] = [
 ];
 
 export type HomeSolution = 'Specialized' | 'Instant' | 'Synthetic';
-export type HomeDashboardStatus = 'Bid' | 'Ready' | 'Live' | 'Paused' | 'Closed';
+export type HomeDashboardStatus = 'Bid' | 'Ready' | 'Live' | 'Soft-launched' | 'Paused' | 'Closed';
 
 export interface HomeEntryCard {
   id: 'audience' | 'synthetic';
