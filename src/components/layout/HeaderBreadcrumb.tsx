@@ -16,7 +16,7 @@ export function HeaderBreadcrumb({ projectName }: HeaderBreadcrumbProps) {
         href="/projects"
         className="audience-header-breadcrumb-link shrink-0 no-underline hover:underline"
       >
-        My projects
+        Specialized sample
       </Link>
       <span className="shrink-0 opacity-50" aria-hidden="true">
         ›

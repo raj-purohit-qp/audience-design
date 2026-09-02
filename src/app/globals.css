@@ -51,6 +51,267 @@ input.audience-no-spinner[type='number'] {
   color: rgb(var(--wu-blue-pHover-deep)) !important;
 }
 
+/* IR by AI modal — centered header + footer stepper (WickUI modal pattern) */
+.ir-ai-modal-footer {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.ir-ai-modal-header {
+  background: #eef3fb !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+}
+
+.ir-ai-modal-header > *,
+.ir-ai-modal-header > * > * {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  text-align: center !important;
+}
+
+.ir-ai-modal-content {
+  min-height: 0;
+}
+
+.ir-ai-criteria-radio-input {
+  appearance: auto;
+  -webkit-appearance: radio;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: #1b87e6;
+  cursor: pointer;
+}
+
+.ir-ai-criteria-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.ir-ai-modal-content--scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(480px, calc(100vh - 220px));
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+@keyframes ir-ai-shimmer-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-22deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-22deg);
+  }
+}
+
+@keyframes ir-ai-host-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes ir-ai-flat-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--wu-blue-p) / 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgb(var(--wu-blue-p) / 0.2);
+  }
+}
+
+@keyframes ir-ai-icon-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.ir-ai-action {
+  min-height: var(--btn-height, 2rem);
+  overflow: visible;
+}
+
+/* QuestionPro AI icon — default 18×18px glyph inside 16×16 button icon slot */
+.ir-ai-icon {
+  vertical-align: middle;
+}
+
+.ir-ai-processing-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  background-color: rgb(var(--wu-blue-p) / 0.08);
+  animation: ir-ai-processing-glow 2.4s ease-in-out infinite;
+}
+
+.ir-ai-icon--analyzing {
+  animation: ir-ai-analyzing 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes ir-ai-analyzing {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.1) rotate(-8deg);
+    opacity: 0.82;
+  }
+  50% {
+    transform: scale(1.14) rotate(0deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.1) rotate(8deg);
+    opacity: 0.82;
+  }
+}
+
+@keyframes ir-ai-processing-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--wu-blue-p) / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(var(--wu-blue-p) / 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ir-ai-processing-icon-wrap,
+  .ir-ai-icon--analyzing {
+    animation: none;
+  }
+}
+
+.ir-ai-check-button [data-slot='wu-button-icon'],
+.ir-ai-estimated-badge [data-slot='wu-button-icon'] {
+  width: 16px;
+  height: 16px;
+}
+
+.ir-ai-estimated-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  overflow: visible;
+}
+
+.ir-ai-estimated-badge-host {
+  position: relative;
+  display: inline-grid;
+  overflow: hidden;
+  border-radius: var(--wu-radius);
+  /* Secondary WuButton bg is transparent — host carries tint so white shine is visible */
+  background-color: rgb(var(--wu-blue-p) / 0.1);
+  background-image: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.55) 46%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.55) 54%,
+    transparent 62%,
+    transparent 100%
+  );
+  background-size: 280% 100%;
+  background-repeat: no-repeat;
+  animation:
+    ir-ai-host-shimmer 2.4s ease-in-out infinite,
+    ir-ai-flat-glow 2.8s ease-in-out infinite;
+}
+
+.ir-ai-estimated-badge-host::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 42%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.35) 58%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: soft-light;
+  animation: ir-ai-host-shimmer 2.4s ease-in-out infinite;
+}
+
+.ir-ai-estimated-badge {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+  background: transparent !important;
+  min-inline-size: auto !important;
+  inline-size: auto !important;
+}
+
+.ir-ai-estimated-badge-host:has(.ir-ai-estimated-badge:disabled) {
+  animation: none;
+  background-image: none;
+}
+
+.ir-ai-estimated-badge-host:has(.ir-ai-estimated-badge:disabled)::after {
+  display: none;
+}
+
+.ir-ai-check-button {
+  min-inline-size: auto !important;
+  inline-size: auto !important;
+}
+
+.ir-ai-estimated-badge__icon {
+  animation: ir-ai-icon-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ir-ai-estimated-badge-host,
+  .ir-ai-estimated-badge-host::after,
+  .ir-ai-estimated-badge__icon {
+    animation: none;
+  }
+
+  .ir-ai-estimated-badge-host::after {
+    display: none;
+  }
+}
+
 /* Strip WuModalFooter default padding so StepFooter controls its own spacing */
 .recon-modal-footer {
   padding: 0 !important;

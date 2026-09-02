@@ -1,77 +1,109 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import type { ReactNode } from 'react';
 import dynamic from 'next/dynamic';
+import { AiIcon } from '@/components/projects/AiIcon';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
-  { ssr: false }
+  { ssr: false },
 );
 const WuTooltip = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTooltip })),
-  { ssr: false }
+  { ssr: false },
 );
 
-const ANALYSIS_MIN_MS = 2000;
-const ANALYSIS_MAX_MS = 5000;
-
 interface CheckWithAiButtonProps {
-  onAnalysisComplete: () => void;
+  onClick: () => void;
   disabled?: boolean;
+  /** When true, shows a clickable "AI estimated" badge instead of the Check with AI button. */
+  aiEstimated?: boolean;
 }
 
-function TooltipContent() {
+function CheckTooltipContent() {
   return (
     <div className="max-w-[260px] space-y-1 py-0.5">
       <p className="text-sm font-semibold leading-snug">Estimate Incidence Rate with AI</p>
       <p className="text-xs leading-relaxed opacity-90">
-        Analyze survey screeners and audience targeting to predict qualification rates and
-        improve feasibility estimates.
+        Analyze survey screeners and audience targeting to predict qualification rates and improve
+        feasibility estimates.
       </p>
     </div>
   );
 }
 
-export function CheckWithAiButton({ onAnalysisComplete, disabled }: CheckWithAiButtonProps) {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+function AiEstimatedTooltipContent() {
+  return (
+    <div className="max-w-[220px] py-0.5">
+      <p className="text-xs leading-relaxed">
+        View or update your AI estimated incidence rate.
+      </p>
+    </div>
+  );
+}
 
-  const handleClick = useCallback(() => {
-    if (isAnalyzing || disabled) return;
+function AiActionShell({ children }: { children: ReactNode }) {
+  return <div className="ir-ai-action inline-flex shrink-0 items-center overflow-visible">{children}</div>;
+}
 
-    setIsAnalyzing(true);
-    const duration =
-      ANALYSIS_MIN_MS + Math.random() * (ANALYSIS_MAX_MS - ANALYSIS_MIN_MS);
+function AiEstimatedButton({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="ir-ai-estimated-wrap">
+      <div className="ir-ai-estimated-badge-host">
+        <WuButton
+          type="button"
+          variant="secondary"
+          color="primary"
+          size="sm"
+          disabled={disabled}
+          onClick={onClick}
+          className="ir-ai-estimated-badge"
+          Icon={<AiIcon className="ir-ai-estimated-badge__icon" />}
+          iconPosition="left"
+          aria-label="AI estimated — view or update incidence rate"
+        >
+          AI estimated
+        </WuButton>
+      </div>
+    </div>
+  );
+}
 
-    window.setTimeout(() => {
-      setIsAnalyzing(false);
-      onAnalysisComplete();
-    }, duration);
-  }, [disabled, isAnalyzing, onAnalysisComplete]);
+export function CheckWithAiButton({ onClick, disabled, aiEstimated = false }: CheckWithAiButtonProps) {
+  if (aiEstimated) {
+    return (
+      <AiActionShell>
+        <WuTooltip content={<AiEstimatedTooltipContent />} position="top" showArrow>
+          <AiEstimatedButton onClick={onClick} disabled={disabled} />
+        </WuTooltip>
+      </AiActionShell>
+    );
+  }
 
   return (
-    <div className="relative shrink-0">
-      <WuTooltip content={<TooltipContent />} position="top" showArrow>
+    <AiActionShell>
+      <WuTooltip content={<CheckTooltipContent />} position="top" showArrow>
         <WuButton
           type="button"
           variant="outlined"
           color="primary"
-          size="md"
-          Icon={!isAnalyzing ? <span className="wm-auto-awesome text-base" aria-hidden="true" /> : undefined}
+          size="sm"
+          Icon={<AiIcon />}
           iconPosition="left"
-          loading={isAnalyzing}
-          disabled={isAnalyzing || disabled}
-          onClick={handleClick}
-          className="min-h-10 min-w-[140px] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          aria-label={
-            isAnalyzing
-              ? 'Analyzing incidence rate with AI'
-              : 'Check with AI — Estimate Incidence Rate'
-          }
-          aria-busy={isAnalyzing}
+          disabled={disabled}
+          onClick={onClick}
+          className="ir-ai-check-button"
+          aria-label="Check with AI — Estimate Incidence Rate"
         >
-          {isAnalyzing ? 'Analyzing...' : 'Check with AI'}
+          Check with AI
         </WuButton>
       </WuTooltip>
-    </div>
+    </AiActionShell>
   );
 }

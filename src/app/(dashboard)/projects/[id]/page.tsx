@@ -21,6 +21,7 @@ import {
   type SingleCountryProjectDetail,
 } from '@/data/audience-project-store';
 import { formatCurrency, type PushProjectResult } from '@/data/mock-audience-projects';
+import { markAudienceProjectLaunched } from '@/data/mock-home';
 
 const WuTab = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTab })),
@@ -80,6 +81,7 @@ export default function ProjectDetailPage() {
     } else {
       persist(withLaunchDefaults(project));
     }
+    markAudienceProjectLaunched();
     showToast({ message: 'Survey launched!', variant: 'success' });
   }
 

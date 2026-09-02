@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,7 @@ import {
 } from '@/data/mock-multi-country';
 import { PushProjectModal } from '@/components/projects/PushProjectModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { isLaunchedStatus, markAudienceProjectLaunched } from '@/data/mock-home';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -25,6 +26,14 @@ const WuInput = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuInput })),
   { ssr: false },
 );
+const WuMenu = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuMenu })),
+  { ssr: false },
+);
+const WuMenuItem = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuMenuItem })),
+  { ssr: false },
+);
 
 const STATUS_DOT: Record<AudienceProjectStatus, string> = {
   Bid: 'bg-[#1b87e6]',
@@ -32,6 +41,23 @@ const STATUS_DOT: Record<AudienceProjectStatus, string> = {
   'Soft-launched': 'bg-[#1b87e6]',
   Live: 'bg-[#188038]',
   Closed: 'bg-[#9aa0a6]',
+};
+
+/** Dropdown option labels (stored value → menu label). Full-launch maps to Live. */
+const STATUS_OPTION_LABEL: Record<AudienceProjectStatus, string> = {
+  Bid: 'Bid',
+  Paused: 'Paused',
+  'Soft-launched': 'Soft-launch',
+  Live: 'Full-launch',
+  Closed: 'Closed',
+};
+
+const STATUS_TRANSITIONS: Record<AudienceProjectStatus, AudienceProjectStatus[]> = {
+  Bid: ['Soft-launched', 'Live', 'Closed'],
+  'Soft-launched': ['Paused', 'Live', 'Closed'],
+  Live: ['Soft-launched', 'Paused', 'Closed'],
+  Paused: ['Soft-launched', 'Live', 'Closed'],
+  Closed: [],
 };
 
 type ChildProjectRow = ChildCountryProject & {
@@ -65,20 +91,59 @@ type PushTarget = {
   kind: 'standalone' | 'child' | 'parent';
 };
 
-function StatusCell({ status }: { status: AudienceProjectStatus }) {
-  const isBid = status === 'Bid';
+function StatusBadge({ status }: { status: AudienceProjectStatus }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-sm text-[#3c4043] ${
-        isBid ? 'rounded border border-[#dadce0] bg-white px-2 py-0.5' : ''
-      }`}
-    >
+    <span className="inline-flex items-center gap-1.5 text-sm text-[#3c4043]">
       <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[status]}`} aria-hidden="true" />
       {status}
-      {isBid ? (
-        <span className="wm-expand-more text-sm text-[#5f6368]" aria-hidden="true" />
-      ) : null}
     </span>
+  );
+}
+
+function StatusCell({
+  status,
+  onChange,
+}: {
+  status: AudienceProjectStatus;
+  onChange?: (next: AudienceProjectStatus) => void;
+}) {
+  const options = STATUS_TRANSITIONS[status];
+  const canChange = Boolean(onChange) && options.length > 0;
+
+  if (!canChange) {
+    return <StatusBadge status={status} />;
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <WuMenu
+        variant="outlined"
+        position={{ side: 'bottom', align: 'start', sideOffset: 4 }}
+        Trigger={
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded border border-[#dadce0] bg-white px-2 py-0.5 text-sm text-[#3c4043] hover:bg-[#f8f9fa]"
+            aria-label={`Change status from ${status}`}
+          >
+            <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[status]}`} aria-hidden="true" />
+            {status}
+            <span className="wm-expand-more text-sm text-[#5f6368]" aria-hidden="true" />
+          </button>
+        }
+      >
+        {options.map((option) => (
+          <WuMenuItem key={option} onClick={() => onChange?.(option)}>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[option]}`}
+                aria-hidden="true"
+              />
+              {STATUS_OPTION_LABEL[option]}
+            </span>
+          </WuMenuItem>
+        ))}
+      </WuMenu>
+    </div>
   );
 }
 
@@ -177,7 +242,7 @@ function childToRow(child: ChildProjectRow, parentId: string): ProjectRowMetrics
   };
 }
 
-const TABLE_COL_COUNT = 11;
+const TABLE_COL_COUNT = 10;
 
 function ProjectDividerRow() {
   return (
@@ -194,42 +259,48 @@ function ProjectTableRow({
   selected,
   onSelect,
   onPush,
+  onStatusChange,
   dividerBelow = false,
 }: {
   row: ProjectRowMetrics;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onPush?: (row: ProjectRowMetrics) => void;
+  onStatusChange?: (next: AudienceProjectStatus) => void;
   /** Project-level separator; for multi-country, only under the last country row. */
   dividerBelow?: boolean;
 }) {
   const showPush = row.status === 'Live' && !!onPush;
 
+  function handleRowClick(e: MouseEvent<HTMLTableRowElement>) {
+    if (!row.expandable || !row.onToggle) return;
+    const target = e.target as HTMLElement;
+    // Keep checkbox, links, buttons, and other controls from toggling the accordion.
+    if (target.closest('a, button, input, label, [role="button"]')) return;
+    row.onToggle();
+  }
+
   return (
     <>
-      <tr className="group hover:bg-[#f8f9fa]" data-expanded={row.expanded}>
-        <td className="w-10 px-3 py-3">
+      <tr
+        className={`group hover:bg-[#f8f9fa] ${row.expandable ? 'cursor-pointer' : ''}`}
+        data-expanded={row.expanded}
+        onClick={handleRowClick}
+      >
+        <td className="w-10 px-3 py-3" onClick={(e) => e.stopPropagation()}>
           <input
             type="checkbox"
             checked={selected}
             onChange={(e) => onSelect(e.target.checked)}
             aria-label={`Select ${row.name}`}
-            className="h-4 w-4 accent-[#1b87e6]"
+            className="h-4 w-4 accent-[rgb(var(--wu-blue-p))]"
           />
-        </td>
-        <td className="w-12 px-2 py-3 text-center">
-          {!row.indent ? (
-            <span
-              className="wm-people text-lg text-[#5f6368]"
-              aria-label="Audience"
-              title="Audience"
-            />
-          ) : null}
         </td>
         <td className={`px-3 py-3 ${row.indent ? 'pl-10' : ''}`}>
           <Link
             href={row.href}
-            className="font-medium text-[#1b87e6] hover:underline"
+            className="font-medium text-[rgb(var(--wu-blue-p))] hover:text-[rgb(var(--wu-blue-pHover-deep))] hover:underline"
+            onClick={(e) => e.stopPropagation()}
           >
             {row.name}
           </Link>
@@ -238,7 +309,7 @@ function ProjectTableRow({
           </span>
         </td>
         <td className="px-3 py-3">
-          <StatusCell status={row.status} />
+          <StatusCell status={row.status} onChange={onStatusChange} />
         </td>
         <td className="px-3 py-3">
           <ProgressCell value={row.progressPercent} />
@@ -255,7 +326,7 @@ function ProjectTableRow({
         <td className="px-3 py-3 tabular-nums text-[#3c4043]">
           {formatCurrency(row.totalCost)}
         </td>
-        <td className="w-[5.5rem] px-2 py-3 text-right">
+        <td className="w-[5.5rem] px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
           {showPush ? (
             <div className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
               <WuButton
@@ -271,7 +342,7 @@ function ProjectTableRow({
             </div>
           ) : null}
         </td>
-        <td className="w-10 px-2 py-3 text-center">
+        <td className="w-10 px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
           {row.expandable ? (
             <button
               type="button"
@@ -324,6 +395,9 @@ export function GroupedProjectsTable() {
     MOCK_MULTI_COUNTRY_PARENT.children.map((c) => ({ ...c, sameCpiPushCount: 0 })),
   );
   const [parentSameCpiPushCount, setParentSameCpiPushCount] = useState(0);
+  const [parentStatus, setParentStatus] = useState<AudienceProjectStatus>(
+    () => MOCK_MULTI_COUNTRY_PARENT.status as AudienceProjectStatus,
+  );
   const [pushTarget, setPushTarget] = useState<PushTarget | null>(null);
 
   const parentMetrics = useMemo(() => aggregateChildren(multiChildren), [multiChildren]);
@@ -395,6 +469,48 @@ export function GroupedProjectsTable() {
       if (checked) visibleRowIds.forEach((id) => next.add(id));
       else visibleRowIds.forEach((id) => next.delete(id));
       return next;
+    });
+  }
+
+  function handleStatusChange(
+    id: string,
+    kind: 'standalone' | 'child' | 'parent',
+    next: AudienceProjectStatus,
+  ) {
+    const allowed =
+      kind === 'parent'
+        ? STATUS_TRANSITIONS[parentStatus]
+        : kind === 'child'
+          ? STATUS_TRANSITIONS[
+              (multiChildren.find((c) => c.id === id)?.status as AudienceProjectStatus) ?? 'Closed'
+            ]
+          : STATUS_TRANSITIONS[
+              projects.find((p) => p.id === id)?.status ?? 'Closed'
+            ];
+
+    if (!allowed.includes(next)) return;
+
+    if (isLaunchedStatus(next)) {
+      markAudienceProjectLaunched();
+    }
+
+    if (kind === 'standalone') {
+      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, status: next } : p)));
+    } else if (kind === 'child') {
+      setMultiChildren((prev) =>
+        prev.map((child) =>
+          child.id === id
+            ? { ...child, status: next as ChildCountryProject['status'] }
+            : child,
+        ),
+      );
+    } else {
+      setParentStatus(next);
+    }
+
+    showToast({
+      message: `Status updated to ${STATUS_OPTION_LABEL[next]}.`,
+      variant: 'success',
     });
   }
 
@@ -477,7 +593,7 @@ export function GroupedProjectsTable() {
     name: MOCK_MULTI_COUNTRY_PARENT.name,
     projectId: MOCK_MULTI_COUNTRY_PARENT.projectId,
     href: `/projects/${MOCK_MULTI_COUNTRY_PARENT.id}`,
-    status: MOCK_MULTI_COUNTRY_PARENT.status as AudienceProjectStatus,
+    status: parentStatus,
     progressPercent: parentMetrics.progressPercent,
     completesCurrent: parentMetrics.totalCollected,
     completesTarget: parentMetrics.totalResponses,
@@ -493,7 +609,7 @@ export function GroupedProjectsTable() {
   return (
     <div className="space-y-4 px-6 pt-4">
       <PageHeader
-        title="Projects"
+        title="Specialized sample"
         action={
           <WuButton onClick={() => router.push('/projects/create')}>
             <span className="wm-add" aria-hidden="true" /> Create project
@@ -515,7 +631,7 @@ export function GroupedProjectsTable() {
       </div>
 
       <div className="overflow-x-auto rounded-md border border-[#e0e4e8] bg-white">
-        <table className="min-w-[1120px] w-full border-collapse text-sm" aria-label="Projects">
+        <table className="min-w-[1120px] w-full border-collapse text-sm" aria-label="Specialized sample">
           <thead>
             <tr className="bg-[#EEEEEE]">
               <th className={`w-10 ${HEADER_CELL}`}>
@@ -524,12 +640,6 @@ export function GroupedProjectsTable() {
                   indeterminate={someVisibleSelected && !allVisibleSelected}
                   onChange={toggleSelectAll}
                 />
-              </th>
-              <th className={`w-[4.5rem] ${HEADER_CELL}`}>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="wm-people text-sm text-[#545E6B]" aria-hidden="true" />
-                  Type
-                </span>
               </th>
               <SortableHeader>Project name</SortableHeader>
               <SortableHeader>Status</SortableHeader>
@@ -550,6 +660,9 @@ export function GroupedProjectsTable() {
                   selected={selectedIds.has(parentRow.id)}
                   onSelect={(checked) => toggleRow(parentRow.id, checked)}
                   dividerBelow={!parentRow.expanded}
+                  onStatusChange={(next) =>
+                    handleStatusChange(parentRow.id, 'parent', next)
+                  }
                   onPush={
                     parentRow.status === 'Live'
                       ? (target) =>
@@ -570,6 +683,7 @@ export function GroupedProjectsTable() {
                     selected={selectedIds.has(row.id)}
                     onSelect={(checked) => toggleRow(row.id, checked)}
                     dividerBelow={index === visibleChildRows.length - 1}
+                    onStatusChange={(next) => handleStatusChange(row.id, 'child', next)}
                     onPush={
                       row.status === 'Live'
                         ? (target) =>
@@ -596,6 +710,9 @@ export function GroupedProjectsTable() {
                   selected={selectedIds.has(row.id)}
                   onSelect={(checked) => toggleRow(row.id, checked)}
                   dividerBelow
+                  onStatusChange={(next) =>
+                    handleStatusChange(row.id, 'standalone', next)
+                  }
                   onPush={
                     row.status === 'Live'
                       ? (target) =>
