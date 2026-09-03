@@ -128,11 +128,18 @@ export function UniqueResponsesField({ value, onChange }: UniqueResponsesFieldPr
     setGroups(loadUniqueResponseGroups());
   }, []);
 
-  function handleCreate(name: string) {
-    const group = createUniqueResponseGroup(name, groups);
+  function handleCreate(name: string, projectIds: string[]) {
+    const group = createUniqueResponseGroup(name, groups, projectIds);
     setGroups((prev) => [...prev, group]);
     onChange(group);
-    showToast({ message: 'Unique response group created', variant: 'success' });
+    const addedCount = projectIds.length;
+    showToast({
+      message:
+        addedCount > 0
+          ? `Unique response group created with ${addedCount} launched ${addedCount === 1 ? 'project' : 'projects'}`
+          : 'Unique response group created',
+      variant: 'success',
+    });
   }
 
   return (
