@@ -484,6 +484,10 @@ export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProp
                     <Chip>{c.value}</Chip>
                   </div>
                 ))}
+              <div>
+                <FieldLabel>Unique Responses</FieldLabel>
+                <Chip>{project.uniqueResponseGroupName ?? 'None'}</Chip>
+              </div>
               <p className="pt-1 text-[13px] leading-relaxed text-[#8c9baa]">
                 {audienceSummary}
               </p>

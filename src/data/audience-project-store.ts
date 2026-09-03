@@ -159,6 +159,8 @@ export interface CreateMultiCountryPayload {
   incidenceRate: number;
   surveyLengthMinutes: number;
   completionDate?: Date;
+  uniqueResponseGroupId?: string;
+  uniqueResponseGroupName?: string;
 }
 
 export function buildMultiCountryProject(payload: CreateMultiCountryPayload): MultiCountryProjectDetail {
@@ -177,6 +179,8 @@ export function buildMultiCountryProject(payload: CreateMultiCountryPayload): Mu
     dueDate: formatEstimateDate(payload.completionDate) || 'Aug 15, 2026',
     incidenceRate: payload.incidenceRate,
     surveyLengthMinutes: payload.surveyLengthMinutes,
+    uniqueResponseGroupId: payload.uniqueResponseGroupId,
+    uniqueResponseGroupName: payload.uniqueResponseGroupName,
     globalCriteria: payload.globalCriteria,
     countries: payload.plans,
     children: payload.plans.map((plan) => ({
