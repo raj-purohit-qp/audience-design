@@ -73,6 +73,8 @@ export interface MultiCountryProjectDetail {
   launchDate?: string;
   incidenceRate: number;
   surveyLengthMinutes: number;
+  uniqueResponseGroupId?: string;
+  uniqueResponseGroupName?: string;
   globalCriteria: GlobalCriterion[];
   countries: CountryPlan[];
   children: ChildCountryProject[];

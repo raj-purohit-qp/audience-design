@@ -9,6 +9,7 @@ import { AudienceTemplateCard } from '@/components/projects/AudienceTemplateCard
 import { CheckWithAiButton } from '@/components/projects/CheckWithAiButton';
 import { IrAiWorkflowModal } from '@/components/projects/IrAiWorkflowModal';
 import { SelectSurveyModal } from '@/components/projects/SelectSurveyModal';
+import { UniqueResponsesField } from '@/components/projects/UniqueResponsesField';
 import {
   ProjectEstimatePanel,
   type CountryCostBreakdownRow,
@@ -36,6 +37,7 @@ import {
 import { buildMultiCountryProject, saveMultiCountryProject } from '@/data/audience-project-store';
 import { markAudienceProjectLaunched } from '@/data/mock-home';
 import { US_APPLIED_CRITERIA, US_EV_SURVEY } from '@/data/mock-ir-ai';
+import type { UniqueResponseGroup } from '@/data/mock-unique-responses';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -166,6 +168,7 @@ export function CreateProjectForm() {
   const [incidenceRateFromAi, setIncidenceRateFromAi] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date('2026-08-05'));
   const [surveyLength, setSurveyLength] = useState(10);
+  const [uniqueResponseGroup, setUniqueResponseGroup] = useState<UniqueResponseGroup | null>(null);
   const [templatesByCountry, setTemplatesByCountry] = useState<Record<string, string | null>>({
     [DEFAULT_COUNTRY.value]: 'def-1',
   });
@@ -342,6 +345,8 @@ export function CreateProjectForm() {
       incidenceRate,
       surveyLengthMinutes: surveyLength,
       completionDate,
+      uniqueResponseGroupId: uniqueResponseGroup?.id,
+      uniqueResponseGroupName: uniqueResponseGroup?.name,
     });
 
     saveMultiCountryProject(project);
@@ -487,8 +492,8 @@ export function CreateProjectForm() {
               {/* Fielding parameters */}
               <section className="space-y-3">
                 <SectionHeading>What are the key parameters for survey fielding?</SectionHeading>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div>
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="shrink-0">
                     <div className="mb-1.5 flex items-center gap-1.5">
                       <span className="text-xs font-medium text-[#54606b]">Incidence rate</span>
                       <WuTooltip content="Expected percentage of panelists who qualify for your survey">
@@ -518,16 +523,19 @@ export function CreateProjectForm() {
                     </div>
                   </div>
 
-                  <WuDatePicker
-                    Label="Completion date"
-                    labelPosition="top"
-                    variant="outlined"
-                    value={completionDate}
-                    onChange={setCompletionDate}
-                    minDate={new Date()}
-                  />
+                  <div className="w-[10.5rem] shrink-0">
+                    <WuDatePicker
+                      Label="Completion date"
+                      labelPosition="top"
+                      variant="outlined"
+                      value={completionDate}
+                      onChange={setCompletionDate}
+                      minDate={new Date()}
+                      className="w-full"
+                    />
+                  </div>
 
-                  <div>
+                  <div className="shrink-0">
                     <FieldLabel>Survey length</FieldLabel>
                     <div className="flex items-end gap-2">
                       <WuStepper
@@ -540,6 +548,13 @@ export function CreateProjectForm() {
                       />
                       <span className="pb-2 text-sm text-[#8c9baa]">min</span>
                     </div>
+                  </div>
+
+                  <div className="max-w-full shrink-0">
+                    <UniqueResponsesField
+                      value={uniqueResponseGroup}
+                      onChange={setUniqueResponseGroup}
+                    />
                   </div>
                 </div>
               </section>
