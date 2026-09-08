@@ -382,7 +382,7 @@ export function ProjectDashboard({ project, onPush }: ProjectDashboardProps) {
           velocity={project.velocityPerHour ?? 5}
           etcDate={project.etcDate ?? project.dueDate}
           daysElapsed={project.daysElapsed ?? 0}
-          showPush={project.status === 'Live'}
+          showPush={project.status === 'Live' && Boolean(onPush)}
           onPush={onPush}
         />
       )}

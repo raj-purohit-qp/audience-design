@@ -13,6 +13,13 @@ import { MultiCountryOverviewTab } from '@/components/multi-country/MultiCountry
 import { MultiCountryProjectHeader } from '@/components/multi-country/MultiCountryProjectHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DetailPageContent, DetailTabContainer } from '@/components/ui/page-layout';
+import { WorkspaceContextBar } from '@/components/workspace/WorkspaceContextBar';
+import { useWorkspaceSession } from '@/components/workspace/useWorkspaceSession';
+import {
+  getProjectOwnerId,
+  possessiveName,
+} from '@/data/mock-workspace';
+import { setActiveWorkspaceId } from '@/data/workspace-session';
 import {
   isMultiCountryProject,
   resolveProject,
@@ -25,6 +32,10 @@ import { markAudienceProjectLaunched } from '@/data/mock-home';
 
 const WuTab = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTab })),
+  { ssr: false },
+);
+const WuButton = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
   { ssr: false },
 );
 
@@ -46,6 +57,7 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { showToast } = useWuShowToast();
+  const workspace = useWorkspaceSession();
   const [project, setProject] = useState<AudienceProjectDetail | null>(null);
   const [activeTab, setActiveTab] = useState('details');
   const [pushOpen, setPushOpen] = useState(false);
@@ -53,6 +65,26 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     setProject(resolveProject(id));
   }, [id]);
+
+  const ownerId = project ? getProjectOwnerId(project.id) : null;
+  const isOwnProject = ownerId === workspace.currentUser.id;
+  const sharedGrant = ownerId
+    ? workspace.sharedWorkspaces.find((item) => item.id === ownerId)
+    : undefined;
+  const hasAccess = Boolean(project) && (isOwnProject || Boolean(sharedGrant));
+  const readOnly = Boolean(project) && !isOwnProject && sharedGrant?.access === 'read';
+  const projectOwner =
+    ownerId === workspace.currentUser.id
+      ? workspace.currentUser
+      : workspace.members.find((member) => member.id === ownerId);
+
+  useEffect(() => {
+    if (!project || !ownerId || !hasAccess) return;
+    const nextId = isOwnProject ? 'mine' : ownerId;
+    if (workspace.isMine && isOwnProject) return;
+    if (!workspace.isMine && workspace.activeId === ownerId) return;
+    setActiveWorkspaceId(nextId);
+  }, [project, ownerId, hasAccess, isOwnProject, workspace.isMine, workspace.activeId]);
 
   useEffect(() => {
     if (project && project.status !== 'Closed' && activeTab === 'reconciliation') {
@@ -66,11 +98,12 @@ export default function ProjectDetailPage() {
   }
 
   function handleEdit() {
+    if (readOnly) return;
     router.push('/projects/create');
   }
 
   function handleLaunch() {
-    if (!project) return;
+    if (!project || readOnly) return;
     if (isMultiCountryProject(project)) {
       persist({
         ...project,
@@ -86,25 +119,25 @@ export default function ProjectDetailPage() {
   }
 
   function handlePause() {
-    if (!project) return;
+    if (!project || readOnly) return;
     persist({ ...project, status: 'Paused' });
     showToast({ message: 'Survey paused.', variant: 'success' });
   }
 
   function handleResume() {
-    if (!project) return;
+    if (!project || readOnly) return;
     persist({ ...project, status: 'Live' });
     showToast({ message: 'Survey resumed.', variant: 'success' });
   }
 
   function handleClose() {
-    if (!project) return;
+    if (!project || readOnly) return;
     persist({ ...project, status: 'Closed' });
     showToast({ message: 'Survey closed.', variant: 'success' });
   }
 
   function handlePushConfirm(result: PushProjectResult) {
-    if (!project || isMultiCountryProject(project)) return;
+    if (!project || isMultiCountryProject(project) || readOnly) return;
     const nextCount =
       result.mode === 'same' ? (project.sameCpiPushCount ?? 0) + 1 : 0;
     persist({
@@ -126,6 +159,21 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex min-h-[320px] items-center justify-center bg-[#f4f6f9] p-6">
         <EmptyState icon="wm-hourglass-empty" title="Loading project" description="Fetching project details…" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="flex min-h-[320px] items-center justify-center bg-[#f4f6f9] p-6">
+        <EmptyState
+          icon="wm-lock"
+          title="Access unavailable"
+          description={`You no longer have access to ${possessiveName(projectOwner?.name ?? 'this')} workspace.`}
+          action={
+            <WuButton onClick={workspace.returnToMyWorkspace}>Go to My Workspace</WuButton>
+          }
+        />
       </div>
     );
   }
@@ -164,12 +212,18 @@ export default function ProjectDetailPage() {
 
     return (
       <div className="min-h-full bg-[#f4f6f9]">
+        <WorkspaceContextBar
+          isMine={isOwnProject}
+          ownerName={projectOwner?.name ?? workspace.owner.name}
+          access={isOwnProject ? 'owner' : sharedGrant?.access ?? 'read'}
+        />
         <MultiCountryProjectHeader
           project={project}
           onLaunch={handleLaunch}
           onPause={handlePause}
           onResume={handleResume}
           onClose={handleClose}
+          readOnly={readOnly}
         />
         <div className="border-b border-[#e0e4e8] bg-white">
           <DetailTabContainer>
@@ -190,7 +244,10 @@ export default function ProjectDetailPage() {
         </span>
       ),
       Content: (
-        <ProjectDashboard project={project} onPush={() => setPushOpen(true)} />
+        <ProjectDashboard
+          project={project}
+          onPush={readOnly ? undefined : () => setPushOpen(true)}
+        />
       ),
     },
     {
@@ -208,6 +265,11 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="min-h-full bg-[#f4f6f9]">
+      <WorkspaceContextBar
+        isMine={isOwnProject}
+        ownerName={projectOwner?.name ?? workspace.owner.name}
+        access={isOwnProject ? 'owner' : sharedGrant?.access ?? 'read'}
+      />
       <ProjectDetailHeader
         project={project}
         onEdit={handleEdit}
@@ -215,6 +277,7 @@ export default function ProjectDetailPage() {
         onPause={handlePause}
         onResume={handleResume}
         onClose={handleClose}
+        readOnly={readOnly}
       />
       <div className="border-b border-[#e0e4e8] bg-white">
         <DetailTabContainer>

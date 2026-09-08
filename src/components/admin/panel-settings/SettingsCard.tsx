@@ -11,6 +11,14 @@ const WuCardHeader = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCardHeader })),
   { ssr: false },
 );
+const WuHeading = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuHeading })),
+  { ssr: false },
+);
+const WuSubtext = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSubtext })),
+  { ssr: false },
+);
 
 export function SettingsCard({
   title,
@@ -25,8 +33,12 @@ export function SettingsCard({
     <WuCard rounded className="overflow-hidden p-0 shadow-sm">
       <WuCardHeader className="border-b border-[#eef0f3] px-5 py-4">
         <div>
-          <p className="text-base font-semibold text-[#1a2340]">{title}</p>
-          {subtitle && <p className="mt-0.5 text-sm text-[#8c9baa]">{subtitle}</p>}
+          <WuHeading size="sm">{title}</WuHeading>
+          {subtitle && (
+            <WuSubtext size="sm" className="mt-0.5">
+              {subtitle}
+            </WuSubtext>
+          )}
         </div>
       </WuCardHeader>
       <div className="px-5 py-5">{children}</div>

@@ -37,6 +37,7 @@ interface ProjectDetailHeaderProps {
   onPause: () => void;
   onResume: () => void;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
 export function ProjectDetailHeader({
@@ -46,6 +47,7 @@ export function ProjectDetailHeader({
   onPause,
   onResume,
   onClose,
+  readOnly = false,
 }: ProjectDetailHeaderProps) {
   const isDraft = project.status === 'Draft';
   const isLive = project.status === 'Live';
@@ -66,6 +68,13 @@ export function ProjectDetailHeader({
         { icon: 'wm-rocket-launch', text: `Launched ${project.launchDate ?? '—'}` },
         { icon: 'wm-event', text: `Due ${project.dueDate}` },
       ];
+
+  if (project.uniqueResponseGroupName) {
+    metaItems.push({
+      icon: 'wm-group',
+      text: `Unique responses: ${project.uniqueResponseGroupName}`,
+    });
+  }
 
   return (
     <header className="border-b border-[#e0e4e8] bg-white">
@@ -102,6 +111,7 @@ export function ProjectDetailHeader({
           </div>
         </div>
 
+        {!readOnly && (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {isDraft && (
             <>
@@ -166,6 +176,7 @@ export function ProjectDetailHeader({
             </WuButton>
           )}
         </div>
+        )}
       </div>
     </header>
   );

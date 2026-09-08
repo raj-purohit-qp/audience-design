@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
+import { WorkspaceNav } from '@/components/workspace/WorkspaceNav';
 
 const WuSidebarContent = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSidebarContent })),
@@ -58,6 +59,8 @@ export function SideNav() {
   return (
     <>
       <WuSidebarContent>
+        <WorkspaceNav />
+
         <WuSidebarItem Icon={<NavIcon name="wm-edit" />} isActive={isHome}>
           <Link href="/home">Home</Link>
         </WuSidebarItem>
@@ -85,11 +88,6 @@ export function SideNav() {
       <WuSidebarFooter>
         <WuSidebarItem Icon={<PanelSettingsIcon />} isActive={isPanelSettings}>
           <Link href="/admin/panel-settings">Panel settings</Link>
-        </WuSidebarItem>
-        <WuSidebarItem Icon={<NavIcon name="wm-shield" />}>
-          <button type="button" className="w-full text-left" onClick={comingSoon('Admin')}>
-            Admin
-          </button>
         </WuSidebarItem>
         <WuSidebarItem Icon={<NavIcon name="wm-settings" />}>
           <button type="button" className="w-full text-left" onClick={comingSoon('Settings')}>

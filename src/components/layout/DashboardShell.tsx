@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { SideNav } from '@/components/SideNav';
 import { HeaderBreadcrumb } from '@/components/layout/HeaderBreadcrumb';
 import { resolveAudienceProject } from '@/data/audience-project-store';
+import { useWorkspaceSession } from '@/components/workspace/useWorkspaceSession';
+import { getInitials } from '@/data/mock-workspace';
 
 const WuAppHeader = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuAppHeader })),
@@ -40,6 +42,7 @@ function useProjectDetailBreadcrumb(): string | null {
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const projectName = useProjectDetailBreadcrumb();
+  const { currentUser } = useWorkspaceSession();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -49,9 +52,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         categories={[]}
         user={{
           profile: {
-            initials: 'R',
-            title: 'QuestionPro Admin',
-            companyName: 'QuestionPro',
+            initials: getInitials(currentUser.name),
+            title: currentUser.name,
+            companyName: 'Northstar Insights',
           },
         }}
       >

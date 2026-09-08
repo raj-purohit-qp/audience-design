@@ -16,7 +16,17 @@ import {
 } from '@/data/mock-multi-country';
 import { PushProjectModal } from '@/components/projects/PushProjectModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useWorkspaceSession } from '@/components/workspace/useWorkspaceSession';
 import { isLaunchedStatus, markAudienceProjectLaunched } from '@/data/mock-home';
+import {
+  DEMO_WORKSPACE_OPTIONS,
+  getProjectOwnerId,
+  possessiveName,
+  workspaceDescription,
+  workspaceHeading,
+  type DemoWorkspaceScenario,
+} from '@/data/mock-workspace';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -24,6 +34,14 @@ const WuButton = dynamic(
 );
 const WuInput = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuInput })),
+  { ssr: false },
+);
+const WuSelect = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSelect })),
+  { ssr: false },
+);
+const WuChip = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuChip })),
   { ssr: false },
 );
 const WuMenu = dynamic(
@@ -383,6 +401,18 @@ function aggregateChildren(children: ChildProjectRow[]) {
 export function GroupedProjectsTable() {
   const router = useRouter();
   const { showToast } = useWuShowToast();
+  const {
+    scenario,
+    setScenario,
+    isMine,
+    owner,
+    canWrite,
+    canCreate,
+    hideMyProjects,
+    isRevoked,
+    revokedOwnerName,
+    returnToMyWorkspace,
+  } = useWorkspaceSession();
   const [search, setSearch] = useState('');
   const [expandedParents, setExpandedParents] = useState<Set<string>>(
     () => new Set([MOCK_MULTI_COUNTRY_PARENT.id]),
@@ -401,18 +431,25 @@ export function GroupedProjectsTable() {
   const [pushTarget, setPushTarget] = useState<PushTarget | null>(null);
 
   const parentMetrics = useMemo(() => aggregateChildren(multiChildren), [multiChildren]);
+  const workspaceOwnerId = owner.id;
 
   const filteredStandalone = useMemo(() => {
+    const owned =
+      hideMyProjects && isMine
+        ? []
+        : projects.filter((project) => getProjectOwnerId(project.id) === workspaceOwnerId);
     const query = search.trim().toLowerCase();
-    if (!query) return projects;
-    return projects.filter(
+    if (!query) return owned;
+    return owned.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
         p.projectId.toLowerCase().includes(query),
     );
-  }, [projects, search]);
+  }, [projects, search, workspaceOwnerId, hideMyProjects, isMine]);
 
   const showParent = useMemo(() => {
+    if (hideMyProjects && isMine) return false;
+    if (getProjectOwnerId(MOCK_MULTI_COUNTRY_PARENT.id) !== workspaceOwnerId) return false;
     const query = search.trim().toLowerCase();
     if (!query) return true;
     return (
@@ -424,7 +461,7 @@ export function GroupedProjectsTable() {
           c.projectId.toLowerCase().includes(query),
       )
     );
-  }, [search, multiChildren]);
+  }, [search, multiChildren, workspaceOwnerId, hideMyProjects, isMine]);
 
   const visibleChildRows = useMemo(() => {
     if (!showParent || !expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id)) return [];
@@ -477,6 +514,7 @@ export function GroupedProjectsTable() {
     kind: 'standalone' | 'child' | 'parent',
     next: AudienceProjectStatus,
   ) {
+    if (!canWrite) return;
     const allowed =
       kind === 'parent'
         ? STATUS_TRANSITIONS[parentStatus]
@@ -606,17 +644,75 @@ export function GroupedProjectsTable() {
     onToggle: () => toggleParent(MOCK_MULTI_COUNTRY_PARENT.id),
   };
 
+  const heading = workspaceHeading(isMine, owner.name);
+  const description = workspaceDescription(isMine, owner.name);
+  const hasRows = showParent || filteredStandalone.length > 0;
+  const searched = search.trim().length > 0;
+
+  const demoSelect = (
+    <WuSelect
+      data={DEMO_WORKSPACE_OPTIONS as unknown as Record<string, unknown>[]}
+      accessorKey={{ value: 'value', label: 'label' }}
+      value={
+        DEMO_WORKSPACE_OPTIONS.find((option) => option.value === scenario) as unknown as Record<
+          string,
+          unknown
+        >
+      }
+      onSelect={(item) => setScenario((item as { value: DemoWorkspaceScenario }).value)}
+      variant="outlined"
+      labelPosition="left"
+      Label={<span className="whitespace-nowrap text-xs font-medium text-[#8c9baa]">Demo</span>}
+      className="w-[11.5rem] shrink-0 [&_button]:!h-8 [&_button]:!min-h-8 [&_button]:!px-2 [&_button]:!text-xs"
+    />
+  );
+
+  if (isRevoked) {
+    return (
+      <div className="space-y-4 px-6 pt-4">
+        <PageHeader title="Access unavailable" action={demoSelect} />
+        <div className="rounded-lg border border-[#e0e4e8] bg-white">
+          <EmptyState
+            icon="wm-lock"
+            title="Access unavailable"
+            description={`You no longer have access to ${possessiveName(revokedOwnerName)} workspace.`}
+            action={
+              <WuButton onClick={returnToMyWorkspace}>Go to My Workspace</WuButton>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 px-6 pt-4">
       <PageHeader
-        title="Specialized sample"
+        title={heading}
+        description={description}
         action={
-          <WuButton onClick={() => router.push('/projects/create')}>
-            <span className="wm-add" aria-hidden="true" /> Create project
-          </WuButton>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {demoSelect}
+            {!canWrite && !isMine ? (
+              <WuChip size="sm" variant="secondary">
+                Read
+              </WuChip>
+            ) : null}
+            {canWrite && !isMine ? (
+              <WuChip size="sm" color="success">
+                Read & write
+              </WuChip>
+            ) : null}
+            {canCreate ? (
+              <WuButton onClick={() => router.push('/projects/create')}>
+                <span className="wm-add" aria-hidden="true" /> Create project
+              </WuButton>
+            ) : null}
+          </div>
         }
       />
 
+      {!hasRows && !searched ? null : (
       <div className="flex justify-start">
         <WuInput
           variant="flat"
@@ -629,7 +725,36 @@ export function GroupedProjectsTable() {
           aria-label="Search projects"
         />
       </div>
+      )}
 
+      {!hasRows ? (
+        <div className="rounded-lg border border-[#e0e4e8] bg-white">
+          <EmptyState
+            icon="wm-folder"
+            title={
+              searched
+                ? 'No projects match your search.'
+                : isMine
+                  ? 'No projects yet'
+                  : 'No projects available'
+            }
+            description={
+              searched
+                ? 'Try a different name or project ID.'
+                : isMine
+                  ? 'Projects you create will appear here.'
+                  : 'There are currently no projects in this workspace.'
+            }
+            action={
+              isMine && canCreate && !searched ? (
+                <WuButton onClick={() => router.push('/projects/create')}>
+                  <span className="wm-add" aria-hidden="true" /> Create project
+                </WuButton>
+              ) : undefined
+            }
+          />
+        </div>
+      ) : (
       <div className="overflow-x-auto rounded-md border border-[#e0e4e8] bg-white">
         <table className="min-w-[1120px] w-full border-collapse text-sm" aria-label="Specialized sample">
           <thead>
@@ -660,11 +785,13 @@ export function GroupedProjectsTable() {
                   selected={selectedIds.has(parentRow.id)}
                   onSelect={(checked) => toggleRow(parentRow.id, checked)}
                   dividerBelow={!parentRow.expanded}
-                  onStatusChange={(next) =>
-                    handleStatusChange(parentRow.id, 'parent', next)
+                  onStatusChange={
+                    canWrite
+                      ? (next) => handleStatusChange(parentRow.id, 'parent', next)
+                      : undefined
                   }
                   onPush={
-                    parentRow.status === 'Live'
+                    canWrite && parentRow.status === 'Live'
                       ? (target) =>
                           setPushTarget({
                             id: target.id,
@@ -683,9 +810,11 @@ export function GroupedProjectsTable() {
                     selected={selectedIds.has(row.id)}
                     onSelect={(checked) => toggleRow(row.id, checked)}
                     dividerBelow={index === visibleChildRows.length - 1}
-                    onStatusChange={(next) => handleStatusChange(row.id, 'child', next)}
+                    onStatusChange={
+                      canWrite ? (next) => handleStatusChange(row.id, 'child', next) : undefined
+                    }
                     onPush={
-                      row.status === 'Live'
+                      canWrite && row.status === 'Live'
                         ? (target) =>
                             setPushTarget({
                               id: target.id,
@@ -710,11 +839,13 @@ export function GroupedProjectsTable() {
                   selected={selectedIds.has(row.id)}
                   onSelect={(checked) => toggleRow(row.id, checked)}
                   dividerBelow
-                  onStatusChange={(next) =>
-                    handleStatusChange(row.id, 'standalone', next)
+                  onStatusChange={
+                    canWrite
+                      ? (next) => handleStatusChange(row.id, 'standalone', next)
+                      : undefined
                   }
                   onPush={
-                    row.status === 'Live'
+                    canWrite && row.status === 'Live'
                       ? (target) =>
                           setPushTarget({
                             id: target.id,
@@ -731,6 +862,7 @@ export function GroupedProjectsTable() {
           </tbody>
         </table>
       </div>
+      )}
 
       <PushProjectModal
         open={!!pushTarget}
