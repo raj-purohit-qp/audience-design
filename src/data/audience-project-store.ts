@@ -50,6 +50,8 @@ export interface SingleCountryProjectDetail {
   sameCpiPushCount?: number;
   demographics: AudienceProjectDemographics;
   qualificationNote: string;
+  uniqueResponseGroupId?: string;
+  uniqueResponseGroupName?: string;
 }
 
 export function isMultiCountryProject(
