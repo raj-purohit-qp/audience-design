@@ -36,6 +36,7 @@ interface MultiCountryProjectHeaderProps {
   onPause: () => void;
   onResume: () => void;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
 export function MultiCountryProjectHeader({
@@ -44,11 +45,40 @@ export function MultiCountryProjectHeader({
   onPause,
   onResume,
   onClose,
+  readOnly = false,
 }: MultiCountryProjectHeaderProps) {
+  const isDraft = project.status === 'Draft';
+
+  const metaItems: { icon: string; text: string; href?: string }[] = isDraft
+    ? [
+        { icon: 'wm-tag', text: `# ${project.projectId}` },
+        { icon: 'wm-public', text: `${project.countries.length} countries` },
+        { icon: 'wm-person', text: project.client },
+        { icon: 'wm-event', text: `Due ${project.dueDate}` },
+      ]
+    : [
+        { icon: 'wm-tag', text: `# ${project.projectId}` },
+        {
+          icon: 'wm-open-in-new',
+          text: `Survey: ${project.name}`,
+          href: '#',
+        },
+        { icon: 'wm-rocket-launch', text: `Launched ${project.launchDate ?? '—'}` },
+        { icon: 'wm-event', text: `Due ${project.dueDate}` },
+        { icon: 'wm-public', text: `${project.countries.length} countries` },
+      ];
+
+  if (project.uniqueResponseGroupName) {
+    metaItems.push({
+      icon: 'wm-group',
+      text: `Unique responses: ${project.uniqueResponseGroupName}`,
+    });
+  }
+
   return (
     <header className="border-b border-[#e0e4e8] bg-white">
       <div className={`${detailPageGutter} flex flex-wrap items-start justify-between gap-4 py-5`}>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2.5">
             <WuHeading size="lg">{project.name}</WuHeading>
             <WuChip size="sm" shape="rounded" color={statusChipColor(project.status)}>
@@ -58,11 +88,29 @@ export function MultiCountryProjectHeader({
               Multi-country
             </WuChip>
           </div>
-          <WuSubtext size="sm">
-            {project.countries.length} countries · #{project.projectId}
-          </WuSubtext>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {metaItems.map((item) =>
+              item.href ? (
+                <a
+                  key={item.text}
+                  href={item.href}
+                  className="inline-flex items-center gap-1 text-sm text-[#54606b] hover:text-[#1b87e6]"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <span className={`${item.icon} text-[15px]`} aria-hidden="true" />
+                  <span className="max-w-[280px] truncate">{item.text}</span>
+                </a>
+              ) : (
+                <WuSubtext key={item.text} size="sm" className="inline-flex items-center gap-1">
+                  <span className={`${item.icon} text-[15px]`} aria-hidden="true" />
+                  {item.text}
+                </WuSubtext>
+              ),
+            )}
+          </div>
         </div>
 
+        {!readOnly && (
         <div className="flex shrink-0 items-center gap-2">
           {project.status === 'Draft' && (
             <WuButton Icon={<span className="wm-rocket-launch" />} iconPosition="left" onClick={onLaunch}>
@@ -90,6 +138,7 @@ export function MultiCountryProjectHeader({
             </WuButton>
           )}
         </div>
+        )}
       </div>
     </header>
   );

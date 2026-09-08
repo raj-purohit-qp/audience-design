@@ -4,7 +4,7 @@
 
 **Product:** Audience Design
 **What it does:** Frontend/UX prototype for QuestionPro Audience — create and manage Specialized sample, B2B, and Instant answers projects, including organization-level panel pricing defaults.
-**Primary users:** UX, Uber admins, Admins
+**Primary users:** UX, Uber admins, Admins, Primary user
 
 ## Key Entities
 
@@ -22,6 +22,7 @@
 - monitor project status
 - post survey launch actions
 - configure organization panel settings
+- manage organization access and member permissions
 - submit pricing changes for approval (Admin)
 - approve or reject pricing changes (Uber admin)
 
@@ -134,6 +135,59 @@ Edits follow the same Admin submit-for-approval / Uber admin approve-or-reject r
 
 A compact calculator beside the settings form on each tab. Preview values seed from the org settings; editable inputs recalculate dependent values. Edits in the preview do not write back to the form until the form fields themselves are changed.
 
+### Organization access
+
+**URL:** `/admin/organization-access`
+**Nav label:** Organization access (workspace switcher, third option — primary user only)
+**Page heading:** Organization access
+**Purpose:** Primary user administers what other organization members can create and which workspaces they can access.
+**Visibility:** Only the primary user. Regular users do not see this option in the workspace dropdown or any permission controls.
+**Layout:** Page header with supporting text *Manage what members of your organization can create and which workspaces they can access.* Compact prototype Demo role / Demo org / Demo save selectors sit in the header. Organization users table: User, Project creation, Workspace access, Actions.
+
+#### Primary user vs regular user
+
+- There is exactly **one primary user** per organization. That row is labeled **Primary user** and cannot have administrative access removed.
+- **View access** on the primary user opens a read-only configuration panel.
+- **Manage** on any other member opens a right-side drawer to edit that member only.
+
+#### User permission configuration
+
+Drawer sections, in order:
+
+1. **Project creation** — *Choose which Audience products this user can create.* Independent toggles for Specialized sample, Instant answers, and Synthetic.
+2. **Workspace access** — *Choose which users' workspaces this user can access.* **Accessible workspaces** is a searchable multi-select of every organization member, including the primary user. Default for a first-time configuration: all members selected.
+3. **Access level** — For each selected workspace, **Read** or **Read & write**. Default is **Read & write**. Ownership does not change.
+
+**Read:** view projects, project details, monitoring, and reports — no edits.
+**Read & write:** view, edit, manage, and take owner-like actions on projects in that workspace.
+
+#### Actions & feedback
+
+- **Update permissions** saves the member. Success toast: *Permissions updated successfully.* Failure toast: *Unable to update permissions. Please try again.*
+- Unsaved changes warn before closing the drawer, switching members, or leaving the page.
+- Removing a workspace from Accessible workspaces confirms that the user will lose access to that workspace.
+- Changing Read & write → Read confirms that the user will lose the ability to modify projects in that workspace.
+
+#### Empty / edge states
+
+- Solo organization (only the primary user): info message that there are no other members to manage yet.
+- Large organization: search and a virtualized workspace picker.
+- Member with no accessible workspaces: warning in the drawer and **No workspaces** in the table.
+- Regular-user demo role: locked empty state — only the primary user can manage organization access.
+
+### My Workspace and Shared Workspaces
+
+**Purpose:** Users switch between their own projects and other organization members’ workspaces they have been granted access to.
+**Default:** My Workspace is selected at the start of every session. Shared workspace selection is kept in `sessionStorage` for the rest of the login session only.
+**Nav:** Workspace switcher at the top of the sidebar (LivePolls-style dropdown). Trigger shows the active context: *My workspace* / *Private*, *Shared workspace* / owner name, or *Organization access* / *Admin*. Menu items: **My workspace**, then a **Shared workspace** section listing granted users in the same menu, and **Organization access** as the third option for the primary user only. Regular users see only the first two. Empty shared state shows *No shared workspaces*. Long names truncate with a tooltip.
+**Project list:** Specialized sample shows only the active workspace’s projects. Header uses *My Workspace* / *Your projects*, or *{Name}'s workspace* / *Projects created by {Name}*, plus a Read or Read & write chip on shared workspaces.
+**Create project:** Shown only in My Workspace when the user can create Specialized sample. Creating from a shared workspace returns the user to My Workspace.
+**Read:** View projects and details; hide write actions (status change, push, edit, pause, resume, close).
+**Read & write:** Existing project actions remain available. Ownership does not change.
+**Empty:** My Workspace — *No projects yet* / *Projects you create will appear here.* plus Create when allowed. Shared — *No projects available* / *There are currently no projects in this workspace.*
+**Access revoked:** *Access unavailable* / *You no longer have access to {Name}'s workspace.* with **Go to My Workspace**.
+**Prototype demo (Specialized sample header):** Typical, Primary user, Empty mine, No shared, Large org, Access revoked. Typical logs in as Sarah Chen (no Organization access option). Primary user logs in as John Smith and shows Organization access in the workspace dropdown.
+
 ---
 
 ## Terminology
@@ -158,6 +212,14 @@ A compact calculator beside the settings form on each tab. Preview values seed f
 | Request log | History of approval requests: Account manager, Date, Pricing model, Status, and Reason |
 | Reason | Required explanation from the Uber admin when rejecting a request |
 | Save changes | Uber admin action that applies the pending draft as live settings |
+| Primary user | The single organization member who can administer Organization access. Administrative access cannot be removed. |
+| Organization access | Primary user settings for project creation rights and workspace access of other members |
+| Project creation | Whether a member can create Specialized sample, Instant answers, and/or Synthetic projects |
+| Accessible workspaces | The organization members whose workspaces another member can open |
+| My Workspace | The logged-in user's own workspace — projects they created |
+| Shared workspace | Another organization member's workspace the logged-in user has been granted access to |
+| Read | View projects, details, monitoring, and reports in a workspace — no edits |
+| Read & write | View and edit projects in a workspace. Project ownership does not change |
 
 ---
 

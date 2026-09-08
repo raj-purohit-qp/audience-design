@@ -228,3 +228,12 @@ export function formatCurrency(value: number): string {
 export function formatPercent(value: number): string {
   return `${value}%`;
 }
+
+/** Projects that have already been launched (not still in Bid). */
+export function isLaunchedAudienceProject(project: AudienceProject): boolean {
+  return project.status !== 'Bid';
+}
+
+export function getLaunchedAudienceProjects(): AudienceProject[] {
+  return MOCK_AUDIENCE_PROJECTS.filter(isLaunchedAudienceProject);
+}

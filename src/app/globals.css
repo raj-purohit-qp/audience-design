@@ -425,3 +425,124 @@ input.audience-no-spinner[type='number'] {
   max-height: 56px !important;
   background: #EEF3FB !important;
 }
+
+.organization-access-drawer {
+  width: min(100vw, 40rem) !important;
+  max-width: 40rem !important;
+  display: flex !important;
+  height: 100% !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.organization-access-user-header {
+  flex-shrink: 0;
+}
+
+.workspace-switcher {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 1px solid #e0e4e8;
+  border-radius: 6px;
+  background: #fff;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.workspace-switcher:hover {
+  border-color: #c5ccd3;
+  background: #f8f9fa;
+}
+
+.workspace-switcher-menu {
+  position: fixed;
+  z-index: 80;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-height: min(24rem, calc(100vh - 5rem));
+  padding: 4px 0;
+  border: 1px solid #e0e4e8;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(26 35 64 / 12%);
+}
+
+.workspace-switcher-item {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: #1a2340;
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.workspace-switcher-item:hover,
+.workspace-switcher-item:focus-visible {
+  background: #f5f6f8;
+  outline: none;
+}
+
+.workspace-switcher-item.is-section {
+  color: #8c9baa;
+  font-weight: 500;
+}
+
+.workspace-switcher-item.is-section:hover {
+  background: transparent;
+}
+
+.workspace-switcher-item.is-muted {
+  color: #8c9baa;
+}
+
+.workspace-switcher-check {
+  width: 1rem;
+  text-align: center;
+  color: transparent;
+  font-size: 14px;
+}
+
+.workspace-switcher-check.is-on {
+  color: #1b87e6;
+}
+
+.workspace-switcher-divider {
+  height: 1px;
+  margin: 4px 10px;
+  background: #eef0f3;
+}
+
+.organization-access-user-divider {
+  height: 1px;
+  margin: 0 0.5rem;
+  background-color: rgb(var(--wu-gray-40));
+}
+
+.organization-access-table table {
+  table-layout: auto !important;
+  width: 100%;
+}
+
+.organization-access-table th:nth-child(-n + 3),
+.organization-access-table td:nth-child(-n + 3) {
+  width: 1% !important;
+  white-space: nowrap;
+}
+
+.organization-access-table th:nth-child(1),
+.organization-access-table td:nth-child(1),
+.organization-access-table th:nth-child(2),
+.organization-access-table td:nth-child(2) {
+  padding-right: 1.25rem !important;
+}
