@@ -75,7 +75,13 @@ function EmptyReconState({ onStart, canReconcile }: { onStart: () => void; canRe
 }
 
 /* ── Main tab ── */
-export function ReconciliationTab({ projectName: _projectName }: { projectName: string }) {
+export function ReconciliationTab({
+  projectName: _projectName,
+  onReconciled,
+}: {
+  projectName: string;
+  onReconciled?: (idsSubmitted: number) => void;
+}) {
   const { showToast } = useWuShowToast();
 
   const [meta, setMeta] = useState<ReconciliationMeta>({
@@ -103,6 +109,7 @@ export function ReconciliationTab({ projectName: _projectName }: { projectName: 
   function handleSubmit() {
     const newRequest = buildRequestFromBatches(batches, meta.requests.length);
     showToast({ message: 'Reconciliation request submitted!', variant: 'success' });
+    onReconciled?.(newRequest.idsSubmitted);
     setMeta((prev) => {
       const requests = [...prev.requests, newRequest];
       return {

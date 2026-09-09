@@ -20,6 +20,10 @@ const WuSubtext = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSubtext })),
   { ssr: false },
 );
+const WuTooltip = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTooltip })),
+  { ssr: false },
+);
 
 function statusChipColor(
   status: SingleCountryProjectDetail['status'],
@@ -37,6 +41,7 @@ interface ProjectDetailHeaderProps {
   onPause: () => void;
   onResume: () => void;
   onClose: () => void;
+  onTopUp?: () => void;
   readOnly?: boolean;
 }
 
@@ -47,6 +52,7 @@ export function ProjectDetailHeader({
   onPause,
   onResume,
   onClose,
+  onTopUp,
   readOnly = false,
 }: ProjectDetailHeaderProps) {
   const isDraft = project.status === 'Draft';
@@ -134,10 +140,18 @@ export function ProjectDetailHeader({
             </>
           )}
 
-          {project.status === 'Closed' && (
-            <WuButton variant="outlined" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
-              Closed
-            </WuButton>
+          {project.status === 'Closed' && onTopUp && (
+            <WuTooltip content="Collect additional responses for this project." position="top" showArrow>
+              <WuButton
+                variant="outlined"
+                color="primary"
+                Icon={<span className="wm-add" />}
+                iconPosition="left"
+                onClick={onTopUp}
+              >
+                Top-up
+              </WuButton>
+            </WuTooltip>
           )}
 
           {isLive && (

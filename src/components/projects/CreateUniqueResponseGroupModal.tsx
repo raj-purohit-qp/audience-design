@@ -103,7 +103,7 @@ const CreateUniqueResponseGroupModalInner = dynamic(
 
         return (
           <WuModal open={open} onOpenChange={handleOpenChange} variant="action" size="md">
-            <WuModalHeader>Create Unique Response Group</WuModalHeader>
+            <WuModalHeader>Create unique response group</WuModalHeader>
             <WuModalContent>
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
@@ -111,7 +111,7 @@ const CreateUniqueResponseGroupModalInner = dynamic(
                   in other projects within the same group.
                 </p>
                 <WuInput
-                  Label="Group Name"
+                  Label="Group name"
                   variant="outlined"
                   labelPosition="top"
                   placeholder="Enter group name"
@@ -188,7 +188,7 @@ const CreateUniqueResponseGroupModalInner = dynamic(
                 Cancel
               </WuModalClose>
               <WuButton color="primary" onClick={handleCreate} disabled={creating} loading={creating}>
-                Create Group
+                Create group
               </WuButton>
             </WuModalFooter>
           </WuModal>

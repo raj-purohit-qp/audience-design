@@ -8,6 +8,7 @@ import type { IWuTabItem } from '@npm-questionpro/wick-ui-lib';
 import { ProjectDashboard } from '@/components/projects/ProjectDashboard';
 import { ProjectDetailHeader, ReconciliationTabTrigger } from '@/components/projects/ProjectDetailHeader';
 import { PushProjectModal } from '@/components/projects/PushProjectModal';
+import { TopUpModal } from '@/components/projects/TopUpModal';
 import { ReconciliationTab } from '@/components/reconciliation/ReconciliationTab';
 import { MultiCountryOverviewTab } from '@/components/multi-country/MultiCountryOverviewTab';
 import { MultiCountryProjectHeader } from '@/components/multi-country/MultiCountryProjectHeader';
@@ -61,6 +62,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<AudienceProjectDetail | null>(null);
   const [activeTab, setActiveTab] = useState('details');
   const [pushOpen, setPushOpen] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
 
   useEffect(() => {
     setProject(resolveProject(id));
@@ -132,8 +134,39 @@ export default function ProjectDetailPage() {
 
   function handleClose() {
     if (!project || readOnly) return;
-    persist({ ...project, status: 'Closed' });
+    if (isMultiCountryProject(project)) {
+      persist({ ...project, status: 'Closed' });
+    } else {
+      persist({
+        ...project,
+        status: 'Closed',
+        originalRequiredResponses: project.originalRequiredResponses ?? project.responses,
+      });
+    }
     showToast({ message: 'Survey closed.', variant: 'success' });
+  }
+
+  function handleTopUpConfirm(additionalResponses: number) {
+    if (!project || isMultiCountryProject(project) || readOnly) return;
+    const nextRequired = project.responses + additionalResponses;
+    const originalRequired = project.originalRequiredResponses ?? project.responses;
+    persist({
+      ...project,
+      status: 'Live',
+      originalRequiredResponses: originalRequired,
+      responses: nextRequired,
+      totalCost: Number((project.costPerInterview * nextRequired).toFixed(2)),
+      launchDate: project.launchDate ?? 'Jun 2, 2026',
+      etcDate: project.etcDate ?? 'Jun 26, 2026',
+      daysElapsed: project.daysElapsed ?? 0,
+      velocityPerHour: project.velocityPerHour ?? 5,
+      realtimeIR: project.realtimeIR ?? project.incidenceRate,
+      realtimeLOI: project.realtimeLOI ?? project.surveyLengthMinutes,
+    });
+    showToast({
+      message: `Top-up started — collecting ${additionalResponses.toLocaleString()} additional responses.`,
+      variant: 'success',
+    });
   }
 
   function handlePushConfirm(result: PushProjectResult) {
@@ -254,7 +287,15 @@ export default function ProjectDetailPage() {
       value: 'reconciliation',
       Trigger: <ReconciliationTabTrigger disabled={!reconciliationEnabled} />,
       Content: reconciliationEnabled ? (
-        <ReconciliationTab projectName={project.name} />
+        <ReconciliationTab
+          projectName={project.name}
+          onReconciled={(idsSubmitted) => {
+            persist({
+              ...project,
+              reconciledResponses: (project.reconciledResponses ?? 0) + idsSubmitted,
+            });
+          }}
+        />
       ) : (
         <DetailPageContent className="text-center text-sm text-gray-500">
           Reconciliation is available after the project is closed.
@@ -277,6 +318,7 @@ export default function ProjectDetailPage() {
         onPause={handlePause}
         onResume={handleResume}
         onClose={handleClose}
+        onTopUp={readOnly ? undefined : () => setTopUpOpen(true)}
         readOnly={readOnly}
       />
       <div className="border-b border-[#e0e4e8] bg-white">
@@ -297,6 +339,13 @@ export default function ProjectDetailPage() {
         currentCpi={project.costPerInterview}
         sameCpiPushCount={project.sameCpiPushCount}
         onConfirm={handlePushConfirm}
+      />
+      <TopUpModal
+        open={topUpOpen}
+        onOpenChange={setTopUpOpen}
+        originalRequiredResponses={project.originalRequiredResponses ?? project.responses}
+        reconciledResponses={project.reconciledResponses ?? 0}
+        onConfirm={handleTopUpConfirm}
       />
     </div>
   );
