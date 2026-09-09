@@ -53,18 +53,18 @@ const UniqueResponsesFieldInner = dynamic(
         ];
         const longestLabel = [
           ...options.map((option) => option.label),
-          '+ Create New Group',
+          '+ Create new group',
           ...(groups.length === 0 ? ['No groups created yet'] : []),
         ].reduce((longest, label) => (label.length > longest.length ? label : longest), 'None');
 
         return (
           <div>
             <div className="mb-1.5 flex items-center gap-1.5">
-              <FieldLabel>Unique Responses</FieldLabel>
+              <FieldLabel>Unique responses</FieldLabel>
               <WuTooltip content="Respondents who take one project in this group cannot take other projects in the same group.">
                 <span
                   className="wm-info cursor-help text-sm text-[#8c9baa]"
-                  aria-label="Unique Responses help"
+                  aria-label="Unique responses help"
                 />
               </WuTooltip>
             </div>
@@ -79,7 +79,7 @@ const UniqueResponsesFieldInner = dynamic(
                 <WuMenu
                   variant="outlined"
                   className="w-full"
-                  aria-label="Unique Responses"
+                  aria-label="Unique responses"
                   title={showFullNameTooltip ? selectedLabel : undefined}
                   slots={{ popup: { width: 'var(--anchor-width)' } }}
                   Placeholder={
@@ -108,7 +108,7 @@ const UniqueResponsesFieldInner = dynamic(
                       <WuMenuSeparatorItem />
                     </>
                   )}
-                  <WuMenuItem onClick={onCreateNew}>+ Create New Group</WuMenuItem>
+                  <WuMenuItem onClick={onCreateNew}>+ Create new group</WuMenuItem>
                 </WuMenu>
               </div>
             </div>

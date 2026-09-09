@@ -280,6 +280,8 @@ export const MOCK_MULTI_COUNTRY_PARENT: MultiCountryProjectDetail = {
   launchDate: 'Jun 1, 2026',
   incidenceRate: 45,
   surveyLengthMinutes: 12,
+  uniqueResponseGroupId: 'urg-1',
+  uniqueResponseGroupName: 'Brand Tracking 2026',
   globalCriteria: GLOBAL_CRITERIA,
   countries: [
     { countryCode: 'US', responses: 500, cpi: 3.2, estimatedCost: 1600, setupStatus: 'ready', feasibility: 'high', configured: true, overrides: [], unresolvedIssues: [] },

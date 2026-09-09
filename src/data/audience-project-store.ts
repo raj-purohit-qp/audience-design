@@ -10,7 +10,8 @@ import {
   MOCK_MULTI_COUNTRY_PARENT,
   slugifyChildName,
 } from './mock-multi-country';
-import { MOCK_AUDIENCE_PROJECTS } from './mock-audience-projects';
+import { getSeededReconciledResponses, MOCK_AUDIENCE_PROJECTS } from './mock-audience-projects';
+import { DEFAULT_UNIQUE_RESPONSE_GROUPS } from './mock-unique-responses';
 
 export type AudienceProjectDetailStatus = 'Draft' | 'Live' | 'Paused' | 'Closed';
 
@@ -48,10 +49,14 @@ export interface SingleCountryProjectDetail {
   costPerInterview: number;
   /** Consecutive pushes at the current CPI (max 2 before Same CPI is locked) */
   sameCpiPushCount?: number;
-  demographics: AudienceProjectDemographics;
-  qualificationNote: string;
+  /** Required responses when the project first closed — used for the 20% Top-up default */
+  originalRequiredResponses?: number;
+  /** Approved/submitted reconciled response count — takes priority for Top-up default */
+  reconciledResponses?: number;
   uniqueResponseGroupId?: string;
   uniqueResponseGroupName?: string;
+  demographics: AudienceProjectDemographics;
+  qualificationNote: string;
 }
 
 export function isMultiCountryProject(
@@ -91,6 +96,8 @@ export const MOCK_PROJECT_DETAIL: SingleCountryProjectDetail = {
   totalCost: 1800,
   costPerInterview: 1.2,
   sameCpiPushCount: 0,
+  originalRequiredResponses: 1500,
+  reconciledResponses: 0,
   demographics: DEFAULT_DEMOGRAPHICS,
   qualificationNote:
     'All panelists matching the demographic profile are eligible to respond.',
@@ -145,6 +152,8 @@ export function buildAudienceProjectDetail(payload: CreateProjectPayload): Singl
     surveyLengthMinutes: payload.surveyLengthMinutes,
     totalCost: Math.round(estimate.totalCost),
     costPerInterview: estimate.costPerInterview,
+    originalRequiredResponses: payload.responses,
+    reconciledResponses: 0,
     demographics: DEFAULT_DEMOGRAPHICS,
     qualificationNote: MOCK_PROJECT_DETAIL.qualificationNote,
   };
@@ -235,6 +244,18 @@ export function getMultiCountryProject(id: string): MultiCountryProjectDetail | 
   }
 }
 
+function uniqueResponseGroupForProject(projectId: string): {
+  uniqueResponseGroupId?: string;
+  uniqueResponseGroupName?: string;
+} {
+  const group = DEFAULT_UNIQUE_RESPONSE_GROUPS.find((item) => item.projectIds.includes(projectId));
+  if (!group) return {};
+  return {
+    uniqueResponseGroupId: group.id,
+    uniqueResponseGroupName: group.name,
+  };
+}
+
 export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
   const stored = getAudienceProject(id);
   if (stored) return stored;
@@ -252,7 +273,7 @@ export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
     Closed: 'Closed',
   };
   const status = statusMap[listProject.status] ?? 'Draft';
-  const isLiveLike = status === 'Live' || status === 'Paused';
+  const isLiveLike = status === 'Live' || status === 'Paused' || status === 'Closed';
 
   return {
     ...MOCK_PROJECT_DETAIL,
@@ -265,6 +286,9 @@ export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
     costPerInterview: listProject.costPerComplete,
     totalCost: listProject.projectCost,
     sameCpiPushCount: listProject.sameCpiPushCount ?? 0,
+    originalRequiredResponses: listProject.completesTarget,
+    reconciledResponses: getSeededReconciledResponses(listProject.id),
+    ...uniqueResponseGroupForProject(listProject.id),
     ...(isLiveLike
       ? {
           launchDate: 'Jun 2, 2026',

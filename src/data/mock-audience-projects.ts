@@ -33,6 +33,38 @@ export function canPushAtSameCpi(sameCpiPushCount = 0): boolean {
   return sameCpiPushCount < 2;
 }
 
+/** Closed projects that already have reconciled responses (Case B default). */
+export const SEEDED_RECONCILED_RESPONSES: Record<string, number> = {
+  'ap-001': 50,
+};
+
+export function getSeededReconciledResponses(projectId: string): number {
+  return SEEDED_RECONCILED_RESPONSES[projectId] ?? 0;
+}
+
+/**
+ * Default Top-up quantity for a Closed project.
+ * Reconciled responses take priority over 20% of original required.
+ */
+export function defaultTopUpQuantity(
+  originalRequiredResponses: number,
+  reconciledResponses = 0,
+): number {
+  if (reconciledResponses > 0) return reconciledResponses;
+  return Math.round(originalRequiredResponses * 0.2);
+}
+
+export function topUpDefaultHelperText(
+  originalRequiredResponses: number,
+  reconciledResponses = 0,
+): string {
+  if (reconciledResponses > 0) {
+    return `Default matches reconciled responses (${reconciledResponses.toLocaleString()}). Reconciled count takes priority over the 20% rule.`;
+  }
+  const qty = defaultTopUpQuantity(originalRequiredResponses, 0);
+  return `Default is 20% of original required responses (${originalRequiredResponses.toLocaleString()} × 20% = ${qty.toLocaleString()}). You can edit this value.`;
+}
+
 export type PushCpiMode = 'same' | 'higher';
 
 export interface PushProjectResult {

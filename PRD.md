@@ -264,6 +264,29 @@ Drawer sections, in order:
 
 ---
 
+## Top-up — Closed project
+
+**Purpose:** After a project is **Closed**, collect additional responses on the same project instead of creating a new one.
+
+**Availability**
+- **Project detail** only, when status is **Closed** and the user can write.
+- Action sits in the existing header action area as **Top-up** (outlined, plus icon). Tooltip: *Collect additional responses for this project.*
+
+**Flow**
+1. User clicks **Top-up**.
+2. A small modal asks **How many additional responses do you need?**
+3. Numeric field **Additional responses**, with **Cancel** and **Launch**.
+4. Default quantity:
+   - If reconciled responses > 0: default = reconciled responses.
+   - Otherwise: default = 20% of original required responses (the required count when the project closed).
+5. The user can edit the value. **Launch** adds that quantity to required responses, reopens the project as **Live**, and shows a success toast.
+
+**Demo seeding**
+- **US Customer Experience Study Q2 2026** (`ap-001`) is Closed with 50 reconciled responses — default Top-up is **50**.
+- **Gamers — Xbox UK** (`ap-006`) is Closed with no reconciliation — default Top-up is **10** (20% of 50).
+
+---
+
 ## Multi-country Overview — country view
 
 **Purpose:** On a multi-country project **Overview**, switch between aggregate (**All**) and a single country to inspect metrics and collection progress.
