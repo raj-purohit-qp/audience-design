@@ -57,8 +57,6 @@ export interface SingleCountryProjectDetail {
   uniqueResponseGroupName?: string;
   demographics: AudienceProjectDemographics;
   qualificationNote: string;
-  uniqueResponseGroupId?: string;
-  uniqueResponseGroupName?: string;
 }
 
 export function isMultiCountryProject(
