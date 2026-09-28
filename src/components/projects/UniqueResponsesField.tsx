@@ -53,7 +53,7 @@ const UniqueResponsesFieldInner = dynamic(
         ];
         const longestLabel = [
           ...options.map((option) => option.label),
-          '+ Create new group',
+          'Create wave group',
           ...(groups.length === 0 ? ['No groups created yet'] : []),
         ].reduce((longest, label) => (label.length > longest.length ? label : longest), 'None');
 
@@ -108,7 +108,13 @@ const UniqueResponsesFieldInner = dynamic(
                       <WuMenuSeparatorItem />
                     </>
                   )}
-                  <WuMenuItem onClick={onCreateNew}>+ Create new group</WuMenuItem>
+                  <WuMenuItem
+                    onClick={onCreateNew}
+                    Icon={<span className="wm-add text-sm" aria-hidden="true" />}
+                    iconPosition="left"
+                  >
+                    Create wave group
+                  </WuMenuItem>
                 </WuMenu>
               </div>
             </div>
@@ -128,9 +134,16 @@ export function UniqueResponsesField({ value, onChange }: UniqueResponsesFieldPr
     setGroups(loadUniqueResponseGroups());
   }, []);
 
-  function handleCreate(name: string, projectIds: string[]) {
-    const group = createUniqueResponseGroup(name, groups, projectIds);
-    setGroups((prev) => [...prev, group]);
+  function handleGroupsChange(next: UniqueResponseGroup[]) {
+    setGroups(next);
+    if (!value) return;
+    const stillAssigned = next.find((group) => group.id === value.id);
+    onChange(stillAssigned ?? null);
+  }
+
+  function handleCreate(name: string, projectIds: string[], description: string) {
+    const group = createUniqueResponseGroup(name, groups, projectIds, description);
+    setGroups(loadUniqueResponseGroups());
     onChange(group);
     const addedCount = projectIds.length;
     showToast({
@@ -152,9 +165,10 @@ export function UniqueResponsesField({ value, onChange }: UniqueResponsesFieldPr
       />
       <CreateUniqueResponseGroupModal
         open={isCreateOpen}
-        existingNames={groups.map((group) => group.name)}
+        groups={groups}
         onOpenChange={setIsCreateOpen}
         onCreate={handleCreate}
+        onGroupsChange={handleGroupsChange}
       />
     </>
   );

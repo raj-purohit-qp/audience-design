@@ -449,13 +449,21 @@ export function ProjectDashboard({ project, onPush }: ProjectDashboardProps) {
             iconBg="bg-[#f5f6f8]"
             iconFg="text-[#54606b]"
           >
-            <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <div className="flex flex-col gap-4 py-4">
+              <div>
+                <FieldLabel>Unique Responses</FieldLabel>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  <Chip>{project.uniqueResponseGroupName ?? 'None'}</Chip>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex h-11 w-11 items-center justify-center rounded-md border border-dashed border-[#e0e4e8] bg-[#f5f6f8]">
                 <span className="wm-rule text-[22px] text-[#c4cdd5]" aria-hidden="true" />
               </div>
               <p className="max-w-[260px] text-[13px] leading-relaxed text-[#8c9baa]">
                 {project.qualificationNote}
               </p>
+              </div>
             </div>
           </CriteriaCard>
         </div>

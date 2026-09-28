@@ -30,6 +30,7 @@ import {
 } from '@/data/audience-project-store';
 import { formatCurrency, type PushProjectResult } from '@/data/mock-audience-projects';
 import { markAudienceProjectLaunched } from '@/data/mock-home';
+import { withLiveUniqueResponseGroup } from '@/data/mock-unique-responses';
 
 const WuTab = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTab })),
@@ -65,7 +66,7 @@ export default function ProjectDetailPage() {
   const [topUpOpen, setTopUpOpen] = useState(false);
 
   useEffect(() => {
-    setProject(resolveProject(id));
+    setProject(withLiveUniqueResponseGroup(resolveProject(id)));
   }, [id]);
 
   const ownerId = project ? getProjectOwnerId(project.id) : null;
@@ -96,7 +97,7 @@ export default function ProjectDetailPage() {
 
   function persist(updated: AudienceProjectDetail) {
     saveProject(updated);
-    setProject(updated);
+    setProject(withLiveUniqueResponseGroup(updated));
   }
 
   function handleEdit() {

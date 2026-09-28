@@ -2,16 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import type { IWuTabItem } from '@npm-questionpro/wick-ui-lib';
+import { WaveGroupManageTab } from '@/components/wave-groups/WaveGroupManageTab';
 import {
   getLaunchedProjectOptions,
+  type UniqueResponseGroup,
   type UniqueResponseProjectOption,
 } from '@/data/mock-unique-responses';
 
 interface CreateUniqueResponseGroupModalProps {
   open: boolean;
-  existingNames: string[];
+  groups: UniqueResponseGroup[];
   onOpenChange: (open: boolean) => void;
-  onCreate: (name: string, projectIds: string[]) => void;
+  onCreate: (name: string, projectIds: string[], description: string) => void;
+  onGroupsChange: (groups: UniqueResponseGroup[]) => void;
 }
 
 const LAUNCHED_PROJECT_OPTIONS = getLaunchedProjectOptions();
@@ -27,17 +31,22 @@ const CreateUniqueResponseGroupModalInner = dynamic(
         WuModalClose,
         WuButton,
         WuInput,
+        WuTextarea,
         WuSelect,
         WuChip,
+        WuTab,
       } = lib;
 
       return function CreateUniqueResponseGroupModalInner({
         open,
-        existingNames,
+        groups,
         onOpenChange,
         onCreate,
+        onGroupsChange,
       }: CreateUniqueResponseGroupModalProps) {
+        const [tab, setTab] = useState('create');
         const [name, setName] = useState('');
+        const [description, setDescription] = useState('');
         const [selectedProjects, setSelectedProjects] = useState<UniqueResponseProjectOption[]>([]);
         const [error, setError] = useState<string | null>(null);
         const [creating, setCreating] = useState(false);
@@ -45,7 +54,9 @@ const CreateUniqueResponseGroupModalInner = dynamic(
 
         useEffect(() => {
           if (open) return;
+          setTab('create');
           setName('');
+          setDescription('');
           setSelectedProjects([]);
           setError(null);
           setCreating(false);
@@ -66,8 +77,8 @@ const CreateUniqueResponseGroupModalInner = dynamic(
         function validate(raw: string): string | null {
           const trimmed = raw.trim();
           if (!trimmed) return 'Enter a group name.';
-          const duplicate = existingNames.some(
-            (existing) => existing.trim().toLowerCase() === trimmed.toLowerCase(),
+          const duplicate = groups.some(
+            (existing) => existing.name.trim().toLowerCase() === trimmed.toLowerCase(),
           );
           if (duplicate) return 'A group with this name already exists.';
           return null;
@@ -90,6 +101,7 @@ const CreateUniqueResponseGroupModalInner = dynamic(
             onCreate(
               name.trim(),
               selectedProjects.map((project) => project.value),
+              description.trim(),
             );
             setCreating(false);
             onOpenChange(false);
@@ -101,11 +113,12 @@ const CreateUniqueResponseGroupModalInner = dynamic(
           onOpenChange(next);
         }
 
-        return (
-          <WuModal open={open} onOpenChange={handleOpenChange} variant="action" size="md">
-            <WuModalHeader>Create unique response group</WuModalHeader>
-            <WuModalContent>
-              <div className="space-y-4">
+        const tabItems: IWuTabItem[] = [
+          {
+            value: 'create',
+            Trigger: 'Create wave group',
+            Content: (
+              <div className="space-y-4 pt-4">
                 <p className="text-sm text-gray-600">
                   Create a group to ensure respondents who participate in one project cannot participate
                   in other projects within the same group.
@@ -142,6 +155,18 @@ const CreateUniqueResponseGroupModalInner = dynamic(
                     {error}
                   </p>
                 )}
+
+                <WuTextarea
+                  Label="Description"
+                  variant="outlined"
+                  labelPosition="top"
+                  placeholder="Optional. Describe how this wave group is used."
+                  value={description}
+                  disabled={creating}
+                  rows={3}
+                  className="w-full"
+                  onChange={(e) => setDescription(e.target.value)}
+                />
 
                 <div>
                   <WuSelect
@@ -182,14 +207,46 @@ const CreateUniqueResponseGroupModalInner = dynamic(
                   )}
                 </div>
               </div>
+            ),
+          },
+          {
+            value: 'manage',
+            Trigger: 'Manage wave group',
+            Content: (
+              <div className="pt-4">
+                <WaveGroupManageTab open={open} groups={groups} onGroupsChange={onGroupsChange} />
+              </div>
+            ),
+          },
+        ];
+
+        return (
+          <WuModal
+            open={open}
+            onOpenChange={handleOpenChange}
+            variant="action"
+            size={tab === 'create' ? 'md' : 'lg'}
+            preventClickOutside
+            maxHeight="80vh"
+          >
+            <WuModalHeader>Wave groups</WuModalHeader>
+            <WuModalContent>
+              <WuTab
+                items={tabItems}
+                value={tab}
+                onValueChange={(next) => setTab(String(next))}
+                className="w-full"
+              />
             </WuModalContent>
             <WuModalFooter>
               <WuModalClose variant="secondary" disabled={creating}>
-                Cancel
+                {tab === 'create' ? 'Cancel' : 'Close'}
               </WuModalClose>
-              <WuButton color="primary" onClick={handleCreate} disabled={creating} loading={creating}>
-                Create group
-              </WuButton>
+              {tab === 'create' && (
+                <WuButton color="primary" onClick={handleCreate} disabled={creating} loading={creating}>
+                  Create group
+                </WuButton>
+              )}
             </WuModalFooter>
           </WuModal>
         );
