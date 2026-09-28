@@ -37,7 +37,10 @@ import {
 import { buildMultiCountryProject, saveMultiCountryProject } from '@/data/audience-project-store';
 import { markAudienceProjectLaunched } from '@/data/mock-home';
 import { US_APPLIED_CRITERIA, US_EV_SURVEY } from '@/data/mock-ir-ai';
-import type { UniqueResponseGroup } from '@/data/mock-unique-responses';
+import {
+  addProjectToUniqueResponseGroup,
+  type UniqueResponseGroup,
+} from '@/data/mock-unique-responses';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -350,6 +353,9 @@ export function CreateProjectForm() {
     });
 
     saveMultiCountryProject(project);
+    if (uniqueResponseGroup) {
+      addProjectToUniqueResponseGroup(uniqueResponseGroup.id, project.id);
+    }
     markAudienceProjectLaunched();
     showToast({ message: 'Audience project created', variant: 'success' });
     router.push(`/projects/${project.id}`);

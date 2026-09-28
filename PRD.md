@@ -12,6 +12,7 @@
 - **Specialized sample** — Panel projects with demographic targeting and vendor fulfillment
 - **B2B** — Business-to-business project requirements with account-level Base CPI and Margin
 - **Instant answers** — Lightweight surveys without demographic targeting
+- **Wave group** — Unique-respondent grouping of related projects (Unique Responses)
 - **Pricing model** — How Selling/Buying CPI is determined for Specialized sample
 - **Approval request** — Draft pricing changes submitted by Admin, awaiting Uber admin approval
 
@@ -158,6 +159,8 @@ A compact calculator beside the settings form on each tab. Preview values seed f
 | Request log | History of approval requests: Account manager, Date, Pricing model, Status, and Reason |
 | Reason | Required explanation from the Uber admin when rejecting a request |
 | Save changes | Uber admin action that applies the pending draft as live settings |
+| Wave group | Unique-respondent group. Respondents who take one project in the group cannot take other projects in the same group |
+| Unique Responses | Create-project field used to assign a project to a wave group |
 
 ---
 
@@ -221,3 +224,21 @@ A compact calculator beside the settings form on each tab. Preview values seed f
 - Metrics and Collection progress reflect that country’s child project only
 - The **Countries** progress container is hidden
 - Launch criteria reflect that country’s geography and any country overrides
+
+---
+
+## Wave groups
+
+**Availability:** Create project → Unique Responses → **Create wave group**
+**Purpose:** Create and manage unique-respondent wave groups. Respondents who complete one project in a group cannot take other projects in the same group.
+
+**Modal tabs**
+- **Create wave group** — name, optional description, optional launched projects. Create Group assigns the new group to Unique Responses.
+- **Manage wave group** — list of existing groups. Open a group to see associated projects, update name or description, remove a project, or delete the group.
+
+**Manage wave group**
+- Associated projects lists every project currently assigned to the group (name, Project ID, Status)
+- **Save changes** persists name and description; the updated name is shown on Unique Responses and project overview Unique Responses
+- **Remove** unlinks a project from the group. The project remains in Specialized sample and is no longer associated with that wave group
+- **Delete wave group** removes the group from the system. It is no longer available when assigning Unique Responses. Associated projects are not deleted
+

@@ -55,7 +55,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           },
         }}
       >
-        {projectName ? <HeaderBreadcrumb projectName={projectName} /> : null}
+        {projectName ? (
+          <HeaderBreadcrumb
+            parentHref="/projects"
+            parentLabel="Specialized sample"
+            currentName={projectName}
+          />
+        ) : null}
       </WuAppHeader>
       <WuSidebar Sidebar={<SideNav />}>
         <main className="flex flex-1 flex-col bg-white">{children}</main>
