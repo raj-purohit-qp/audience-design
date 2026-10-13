@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,14 +11,32 @@ import {
   formatCurrency,
 } from '@/data/mock-audience-projects';
 import {
+  getCountryByCode,
   MOCK_MULTI_COUNTRY_PARENT,
+  MULTI_COUNTRY_CATALOG,
   type ChildCountryProject,
 } from '@/data/mock-multi-country';
 import { PushProjectModal } from '@/components/projects/PushProjectModal';
+import { TopUpModal } from '@/components/projects/TopUpModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useWorkspaceSession } from '@/components/workspace/useWorkspaceSession';
 import { isLaunchedStatus, markAudienceProjectLaunched } from '@/data/mock-home';
+import {
+  attachMultiCountryTopUp,
+  attachTopUpChild,
+  buildAudienceProjectDetail,
+  countryOriginalRequired,
+  getAudienceProject,
+  getMultiCountryProject,
+  listStoredAudienceProjects,
+  nextTopUpProjectName,
+  perCountryRequiredResponses,
+  resolveAudienceProject,
+  saveAudienceProject,
+  saveMultiCountryProject,
+  type TopUpChildRef,
+} from '@/data/audience-project-store';
 import {
   DEMO_WORKSPACE_OPTIONS,
   getProjectOwnerId,
@@ -99,6 +117,7 @@ interface ProjectRowMetrics {
   expandable?: boolean;
   expanded?: boolean;
   onToggle?: () => void;
+  countryCode?: string;
 }
 
 type PushTarget = {
@@ -108,6 +127,10 @@ type PushTarget = {
   sameCpiPushCount: number;
   kind: 'standalone' | 'child' | 'parent';
 };
+
+type TopUpTarget =
+  | { kind: 'standalone'; id: string }
+  | { kind: 'child'; id: string; countryCode: string };
 
 function StatusBadge({ status }: { status: AudienceProjectStatus }) {
   return (
@@ -238,6 +261,27 @@ function AccordionChevron({ expanded }: { expanded: boolean }) {
   );
 }
 
+function topUpChildToRow(child: TopUpChildRef): ProjectRowMetrics {
+  const progressPercent =
+    child.responses > 0 ? Math.round((child.collected / child.responses) * 100) : 0;
+
+  return {
+    id: child.id,
+    name: child.name,
+    projectId: child.projectId,
+    href: `/projects/${child.id}`,
+    status: child.status === 'Draft' ? 'Bid' : (child.status as AudienceProjectStatus),
+    progressPercent,
+    completesCurrent: child.collected,
+    completesTarget: child.responses,
+    averageCpi: child.costPerInterview,
+    actualCost: Number((child.collected * child.costPerInterview).toFixed(2)),
+    totalCost: child.totalCost,
+    sameCpiPushCount: 0,
+    indent: true,
+  };
+}
+
 function childToRow(child: ChildProjectRow, parentId: string): ProjectRowMetrics {
   const progressPercent =
     child.responses > 0 ? Math.round((child.collected / child.responses) * 100) : 0;
@@ -257,6 +301,7 @@ function childToRow(child: ChildProjectRow, parentId: string): ProjectRowMetrics
     totalCost: child.totalCost,
     sameCpiPushCount: child.sameCpiPushCount,
     indent: true,
+    countryCode: child.countryCode,
   };
 }
 
@@ -277,6 +322,7 @@ function ProjectTableRow({
   selected,
   onSelect,
   onPush,
+  onTopUp,
   onStatusChange,
   dividerBelow = false,
 }: {
@@ -284,11 +330,13 @@ function ProjectTableRow({
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onPush?: (row: ProjectRowMetrics) => void;
+  onTopUp?: (row: ProjectRowMetrics) => void;
   onStatusChange?: (next: AudienceProjectStatus) => void;
   /** Project-level separator; for multi-country, only under the last country row. */
   dividerBelow?: boolean;
 }) {
   const showPush = row.status === 'Live' && !!onPush;
+  const showTopUp = row.status === 'Closed' && !!onTopUp;
 
   function handleRowClick(e: MouseEvent<HTMLTableRowElement>) {
     if (!row.expandable || !row.onToggle) return;
@@ -344,7 +392,7 @@ function ProjectTableRow({
         <td className="px-3 py-3 tabular-nums text-[#3c4043]">
           {formatCurrency(row.totalCost)}
         </td>
-        <td className="w-[5.5rem] px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+        <td className="w-[6.75rem] px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
           {showPush ? (
             <div className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
               <WuButton
@@ -358,6 +406,19 @@ function ProjectTableRow({
                 Push
               </WuButton>
             </div>
+          ) : showTopUp ? (
+            <div className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <WuButton
+                type="button"
+                variant="outlined"
+                color="primary"
+                size="sm"
+                onClick={() => onTopUp(row)}
+                aria-label={`Top-up ${row.name}`}
+              >
+                Top-up
+              </WuButton>
+            </div>
           ) : null}
         </td>
         <td className="w-10 px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -367,7 +428,7 @@ function ProjectTableRow({
               className="inline-flex h-8 w-8 items-center justify-center rounded hover:bg-[#f1f3f4]"
               onClick={row.onToggle}
               aria-expanded={row.expanded}
-              aria-label={row.expanded ? 'Collapse countries' : 'Expand countries'}
+              aria-label={row.expanded ? 'Collapse child projects' : 'Expand child projects'}
             >
               <AccordionChevron expanded={!!row.expanded} />
             </button>
@@ -429,6 +490,48 @@ export function GroupedProjectsTable() {
     () => MOCK_MULTI_COUNTRY_PARENT.status as AudienceProjectStatus,
   );
   const [pushTarget, setPushTarget] = useState<PushTarget | null>(null);
+  const [topUpTarget, setTopUpTarget] = useState<TopUpTarget | null>(null);
+  const [topUpByParent, setTopUpByParent] = useState<Record<string, TopUpChildRef[]>>({});
+
+  useEffect(() => {
+    const savedMulti = getMultiCountryProject(MOCK_MULTI_COUNTRY_PARENT.id);
+    if (savedMulti) {
+      setParentStatus(savedMulti.status as AudienceProjectStatus);
+      setMultiChildren(savedMulti.children.map((child) => ({ ...child, sameCpiPushCount: 0 })));
+    }
+
+    const stored = listStoredAudienceProjects();
+    const groups: Record<string, TopUpChildRef[]> = {};
+    const byId = new Map(stored.map((item) => [item.id, item]));
+
+    stored.forEach((item) => {
+      if (item.topUpChildren && item.topUpChildren.length > 0) {
+        groups[item.id] = item.topUpChildren;
+      }
+    });
+    setTopUpByParent(groups);
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      Object.keys(groups).forEach((id) => next.add(id));
+      return next;
+    });
+    setProjects((prev) =>
+      prev.map((project) => {
+        const saved = byId.get(project.id);
+        if (!saved) return project;
+        return {
+          ...project,
+          status: saved.status === 'Draft' ? 'Bid' : (saved.status as AudienceProjectStatus),
+          completesTarget: saved.responses,
+          completesCurrent: saved.collected,
+          projectCost: saved.totalCost,
+          currentCost: Number((saved.collected * saved.costPerInterview).toFixed(2)),
+          progressPercent:
+            saved.responses > 0 ? Math.round((saved.collected / saved.responses) * 100) : 0,
+        };
+      }),
+    );
+  }, []);
 
   const parentMetrics = useMemo(() => aggregateChildren(multiChildren), [multiChildren]);
   const workspaceOwnerId = owner.id;
@@ -474,9 +577,14 @@ export function GroupedProjectsTable() {
       ids.push(MOCK_MULTI_COUNTRY_PARENT.id);
       visibleChildRows.forEach((row) => ids.push(row.id));
     }
-    filteredStandalone.forEach((p) => ids.push(p.id));
+    filteredStandalone.forEach((p) => {
+      ids.push(p.id);
+      if (expandedParents.has(p.id)) {
+        (topUpByParent[p.id] ?? []).forEach((child) => ids.push(child.id));
+      }
+    });
     return ids;
-  }, [showParent, visibleChildRows, filteredStandalone]);
+  }, [showParent, visibleChildRows, filteredStandalone, expandedParents, topUpByParent]);
 
   const allVisibleSelected =
     visibleRowIds.length > 0 && visibleRowIds.every((id) => selectedIds.has(id));
@@ -534,6 +642,14 @@ export function GroupedProjectsTable() {
 
     if (kind === 'standalone') {
       setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, status: next } : p)));
+      if (next === 'Closed') {
+        const detail = getAudienceProject(id) ?? resolveAudienceProject(id);
+        saveAudienceProject({
+          ...detail,
+          status: 'Closed',
+          originalRequiredResponses: detail.originalRequiredResponses ?? detail.responses,
+        });
+      }
     } else if (kind === 'child') {
       setMultiChildren((prev) =>
         prev.map((child) =>
@@ -542,8 +658,37 @@ export function GroupedProjectsTable() {
             : child,
         ),
       );
+      const current =
+        getMultiCountryProject(MOCK_MULTI_COUNTRY_PARENT.id) ?? MOCK_MULTI_COUNTRY_PARENT;
+      saveMultiCountryProject({
+        ...current,
+        children: current.children.map((child) =>
+          child.id === id ? { ...child, status: next as ChildCountryProject['status'] } : child,
+        ),
+      });
     } else {
       setParentStatus(next);
+      const current =
+        getMultiCountryProject(MOCK_MULTI_COUNTRY_PARENT.id) ?? MOCK_MULTI_COUNTRY_PARENT;
+      const status = (next === 'Bid' ? 'Draft' : next) as typeof current.status;
+      const nextChildren =
+        next === 'Closed'
+          ? current.children.map((child) => ({ ...child, status: 'Closed' as const }))
+          : current.children;
+      saveMultiCountryProject({
+        ...current,
+        status,
+        originalRequiredResponses:
+          next === 'Closed'
+            ? (current.originalRequiredResponses ?? perCountryRequiredResponses(current))
+            : current.originalRequiredResponses,
+        children: nextChildren,
+      });
+      if (next === 'Closed') {
+        setMultiChildren((prev) =>
+          prev.map((child) => ({ ...child, status: 'Closed' })),
+        );
+      }
     }
 
     showToast({
@@ -626,6 +771,73 @@ export function GroupedProjectsTable() {
     setPushTarget(null);
   }
 
+  function handleListTopUpConfirm(additionalResponses: number) {
+    if (!topUpTarget) return;
+
+    if (topUpTarget.kind === 'standalone') {
+      const project = getAudienceProject(topUpTarget.id) ?? resolveAudienceProject(topUpTarget.id);
+      if (project.topUpOfProjectId) return;
+      const country =
+        MULTI_COUNTRY_CATALOG.find((item) => item.label === project.country) ??
+        MULTI_COUNTRY_CATALOG[0];
+      const child = buildAudienceProjectDetail({
+        name: nextTopUpProjectName(project.name),
+        country,
+        responses: additionalResponses,
+        incidenceRate: project.incidenceRate,
+        surveyLengthMinutes: project.surveyLengthMinutes,
+        demographics: project.demographics,
+        genderQuotas: project.genderQuotas,
+        uniqueResponseProjects: project.uniqueResponseProjects,
+        status: 'Live',
+      });
+      const { parent } = attachTopUpChild(project, {
+        ...child,
+        costPerInterview: project.costPerInterview,
+        totalCost: Number((project.costPerInterview * additionalResponses).toFixed(2)),
+      });
+      markAudienceProjectLaunched();
+      setTopUpByParent((prev) => ({ ...prev, [parent.id]: parent.topUpChildren ?? [] }));
+      setExpandedParents((prev) => new Set(prev).add(parent.id));
+      setProjects((prev) =>
+        prev.map((item) =>
+          item.id === parent.id
+            ? {
+                ...item,
+                completesTarget: parent.responses,
+                projectCost: parent.totalCost,
+              }
+            : item,
+        ),
+      );
+      showToast({
+        message: `Top-up started — collecting ${additionalResponses.toLocaleString()} additional responses.`,
+        variant: 'success',
+      });
+      setTopUpTarget(null);
+      return;
+    }
+
+    const parent =
+      getMultiCountryProject(MOCK_MULTI_COUNTRY_PARENT.id) ?? MOCK_MULTI_COUNTRY_PARENT;
+    const country = getCountryByCode(topUpTarget.countryCode);
+    const nextParent = attachMultiCountryTopUp(parent, {
+      name: nextTopUpProjectName(parent.name, topUpTarget.countryCode),
+      countryCode: topUpTarget.countryCode,
+      responses: additionalResponses,
+      incidenceRate: parent.incidenceRate,
+      surveyLengthMinutes: parent.surveyLengthMinutes,
+    });
+    markAudienceProjectLaunched();
+    setMultiChildren(nextParent.children.map((child) => ({ ...child, sameCpiPushCount: 0 })));
+    setExpandedParents((prev) => new Set(prev).add(nextParent.id));
+    showToast({
+      message: `Top-up started — collecting ${additionalResponses.toLocaleString()} additional responses in ${country?.label ?? topUpTarget.countryCode}.`,
+      variant: 'success',
+    });
+    setTopUpTarget(null);
+  }
+
   const parentRow: ProjectRowMetrics = {
     id: MOCK_MULTI_COUNTRY_PARENT.id,
     name: MOCK_MULTI_COUNTRY_PARENT.name,
@@ -643,6 +855,15 @@ export function GroupedProjectsTable() {
     expanded: expandedParents.has(MOCK_MULTI_COUNTRY_PARENT.id),
     onToggle: () => toggleParent(MOCK_MULTI_COUNTRY_PARENT.id),
   };
+
+  const standaloneTopUpProject =
+    topUpTarget?.kind === 'standalone'
+      ? (getAudienceProject(topUpTarget.id) ?? resolveAudienceProject(topUpTarget.id))
+      : null;
+  const multiTopUpParent =
+    topUpTarget?.kind === 'child'
+      ? (getMultiCountryProject(MOCK_MULTI_COUNTRY_PARENT.id) ?? MOCK_MULTI_COUNTRY_PARENT)
+      : null;
 
   const heading = workspaceHeading(isMine, owner.name);
   const description = workspaceDescription(isMine, owner.name);
@@ -773,7 +994,7 @@ export function GroupedProjectsTable() {
               <SortableHeader>Average CPI</SortableHeader>
               <SortableHeader>Actual Cost</SortableHeader>
               <SortableHeader>Total Cost</SortableHeader>
-              <th className={`w-[5.5rem] ${HEADER_CELL}`} aria-label="Actions" />
+              <th className={`w-[6.75rem] ${HEADER_CELL}`} aria-label="Actions" />
               <th className={`w-10 ${HEADER_CELL}`} aria-label="Expand" />
             </tr>
           </thead>
@@ -825,38 +1046,77 @@ export function GroupedProjectsTable() {
                             })
                         : undefined
                     }
+                    onTopUp={
+                      canWrite &&
+                      row.status === 'Closed' &&
+                      Boolean(row.countryCode) &&
+                      !row.id.includes('-topup-')
+                        ? (target) =>
+                            setTopUpTarget({
+                              kind: 'child',
+                              id: target.id,
+                              countryCode: target.countryCode ?? '',
+                            })
+                        : undefined
+                    }
                   />
                 ))}
               </>
             )}
 
             {filteredStandalone.map((project) => {
-              const row = standaloneToRow(project);
+              const children = topUpByParent[project.id] ?? [];
+              const expanded = expandedParents.has(project.id);
+              const row: ProjectRowMetrics = {
+                ...standaloneToRow(project),
+                expandable: children.length > 0,
+                expanded,
+                onToggle: children.length > 0 ? () => toggleParent(project.id) : undefined,
+              };
               return (
-                <ProjectTableRow
-                  key={project.id}
-                  row={row}
-                  selected={selectedIds.has(row.id)}
-                  onSelect={(checked) => toggleRow(row.id, checked)}
-                  dividerBelow
-                  onStatusChange={
-                    canWrite
-                      ? (next) => handleStatusChange(row.id, 'standalone', next)
-                      : undefined
-                  }
-                  onPush={
-                    canWrite && row.status === 'Live'
-                      ? (target) =>
-                          setPushTarget({
-                            id: target.id,
-                            name: target.name,
-                            costPerComplete: target.averageCpi,
-                            sameCpiPushCount: target.sameCpiPushCount,
-                            kind: 'standalone',
-                          })
-                      : undefined
-                  }
-                />
+                <Fragment key={project.id}>
+                  <ProjectTableRow
+                    row={row}
+                    selected={selectedIds.has(row.id)}
+                    onSelect={(checked) => toggleRow(row.id, checked)}
+                    dividerBelow={children.length === 0 || !expanded}
+                    onStatusChange={
+                      canWrite
+                        ? (next) => handleStatusChange(row.id, 'standalone', next)
+                        : undefined
+                    }
+                    onPush={
+                      canWrite && row.status === 'Live'
+                        ? (target) =>
+                            setPushTarget({
+                              id: target.id,
+                              name: target.name,
+                              costPerComplete: target.averageCpi,
+                              sameCpiPushCount: target.sameCpiPushCount,
+                              kind: 'standalone',
+                            })
+                        : undefined
+                    }
+                    onTopUp={
+                      canWrite && row.status === 'Closed'
+                        ? (target) => setTopUpTarget({ kind: 'standalone', id: target.id })
+                        : undefined
+                    }
+                  />
+                  {expanded &&
+                    children.map((child, index) => {
+                      const childRow = topUpChildToRow(child);
+                      return (
+                        <ProjectTableRow
+                          key={child.id}
+                          row={childRow}
+                          selected={selectedIds.has(childRow.id)}
+                          onSelect={(checked) => toggleRow(childRow.id, checked)}
+                          dividerBelow={index === children.length - 1}
+                        />
+                      );
+                    })}
+                </Fragment>
               );
             })}
           </tbody>
@@ -873,6 +1133,41 @@ export function GroupedProjectsTable() {
         currentCpi={pushTarget?.costPerComplete ?? 0}
         sameCpiPushCount={pushTarget?.sameCpiPushCount}
         onConfirm={handlePushConfirm}
+      />
+      <TopUpModal
+        open={!!topUpTarget}
+        onOpenChange={(open) => {
+          if (!open) setTopUpTarget(null);
+        }}
+        originalRequiredResponses={
+          topUpTarget?.kind === 'child' && multiTopUpParent
+            ? countryOriginalRequired(multiTopUpParent, topUpTarget.countryCode)
+            : (standaloneTopUpProject?.originalRequiredResponses ??
+              standaloneTopUpProject?.responses ??
+              0)
+        }
+        reconciledResponses={standaloneTopUpProject?.reconciledResponses ?? 0}
+        quantityNote={
+          topUpTarget?.kind === 'child'
+            ? 'This quantity is added to this country only.'
+            : undefined
+        }
+        sameCriteriaDescription={
+          topUpTarget?.kind === 'child'
+            ? 'Keep this country’s targeting and add responses for it only.'
+            : undefined
+        }
+        onConfirmSameCriteria={handleListTopUpConfirm}
+        onEditCriteria={() => {
+          if (!topUpTarget) return;
+          if (topUpTarget.kind === 'child') {
+            router.push(
+              `/projects/create?topUpFrom=${MOCK_MULTI_COUNTRY_PARENT.id}&country=${topUpTarget.countryCode}`,
+            );
+            return;
+          }
+          router.push(`/projects/create?topUpFrom=${topUpTarget.id}`);
+        }}
       />
     </div>
   );

@@ -12,7 +12,6 @@
 - **Specialized sample** — Panel projects with demographic targeting and vendor fulfillment
 - **B2B** — Business-to-business project requirements with account-level Base CPI and Margin
 - **Instant answers** — Lightweight surveys without demographic targeting
-- **Wave group** — Unique-respondent grouping of related projects (Unique Responses)
 - **Pricing model** — How Selling/Buying CPI is determined for Specialized sample
 - **Approval request** — Draft pricing changes submitted by Admin, awaiting Uber admin approval
 
@@ -221,8 +220,7 @@ Drawer sections, in order:
 | Shared workspace | Another organization member's workspace the logged-in user has been granted access to |
 | Read | View projects, details, monitoring, and reports in a workspace — no edits |
 | Read & write | View and edit projects in a workspace. Project ownership does not change |
-| Wave group | Unique-respondent group. Respondents who take one project in the group cannot take other projects in the same group |
-| Unique Responses | Create-project field used to assign a project to a wave group |
+| Unique responses | Create-project field for selecting previously launched projects whose respondents cannot take this project |
 
 ---
 
@@ -269,24 +267,47 @@ Drawer sections, in order:
 
 ## Top-up — Closed project
 
-**Purpose:** After a project is **Closed**, collect additional responses on the same project instead of creating a new one.
+**Purpose:** After a project is **Closed**, collect additional responses — either with the same targeting on this project, or with edited criteria (for example to fill a gender or quota gap).
 
 **Availability**
-- **Project detail** only, when status is **Closed** and the user can write.
-- Action sits in the existing header action area as **Top-up** (outlined, plus icon). Tooltip: *Collect additional responses for this project.*
+- When status is **Closed** and the user can write.
+- **Project list:** on hover, **Top-up** appears in the same slot as **Push** (Push is only for Live). Not shown on a multi-country parent row or on a top-up child.
+- **Single-country detail:** action sits in the project header, to the left of **BI analytics** and **Analytics**. Tooltip: *Collect additional responses for this project.* Not available on a top-up child.
+- **Multi-country detail:** **Top-up** sits in the same header slot — to the left of **BI analytics**. It appears when an original country child is selected. It does not appear on the parent (**All**) or on a top-up child.
 
 **Flow**
 1. User clicks **Top-up**.
-2. A small modal asks **How many additional responses do you need?**
-3. Numeric field **Additional responses**, with **Cancel** and **Launch**.
-4. Default quantity:
-   - If reconciled responses > 0: default = reconciled responses.
-   - Otherwise: default = 20% of original required responses (the required count when the project closed).
-5. The user can edit the value. **Launch** adds that quantity to required responses, reopens the project as **Live**, and shows a success toast.
+2. Modal asks **How do you want to collect additional responses?**
+   - **Same criteria** — Keep the current targeting and add responses to this project.
+   - **Edit criteria** — Change targeting or balancing quotas, incidence rate, or completion date. Creates a new top-up project.
+3. **Same criteria**
+   - Numeric field **Additional responses**, with **Cancel** and **Launch**.
+   - Default quantity:
+     - If reconciled responses > 0: default = reconciled responses.
+     - Otherwise: default = 20% of original required responses (the required count when the project closed).
+   - The user can edit the value. **Launch** creates a **Live** child top-up project (named `{original} Topup1`) with the same targeting. The original stays **Closed** as the parent. Parent required responses increase by the additional quantity.
+4. **Edit criteria**
+   - **Continue** opens Create project in top-up mode, prefilled from the closed project.
+   - Project name defaults to `{original name} Topup1` (then Topup2, Topup3, …) and can be edited.
+   - Previously used criteria are applied. The user can turn options off, change due date and incidence rate, and set optional **Balancing quotas** (for example 40 males).
+   - Survey cannot be changed. Country and language stay the same as the original project.
+   - **Launch** creates a **Live** child top-up project under the original parent (same grouping pattern as multi-country). The original stays **Closed**. Parent required responses increase by the additional quantity.
+
+**Parent and children**
+- Specialized sample lists the original as an expandable parent. Child top-up rows indent underneath, like multi-country country rows.
+- Parent Overview shows **Top-up projects** with each child’s status and progress.
+- Parent Completes / required count includes the additional top-up responses (collected stays at the original closed count until children collect).
+
+**Multi-country**
+- Same **Same criteria** / **Edit criteria** choice, scoped to **one country** — a top-up is not created for every country.
+- User selects an original country in Overview. **Top-up** appears in the header to the left of **BI analytics**. The parent (**All**) has no Top-up action. A top-up child cannot be topped up again.
+- Launch adds one Live child for that country only, named `{TopupName}_{CC}` (for example `Brand Tracker 2026 Topup1_US`). Other countries are unchanged.
+- Parent stays **Closed**. Aggregate required responses increase by the additional quantity for that country.
+- **Edit criteria** locks Country and language to the selected country. Targeting edits apply only to that country. Overview lists original countries plus a **Top-up projects** group.
 
 **Demo seeding**
-- **US Customer Experience Study Q2 2026** (`ap-001`) is Closed with 50 reconciled responses — default Top-up is **50**.
-- **Gamers — Xbox UK** (`ap-006`) is Closed with no reconciliation — default Top-up is **10** (20% of 50).
+- **US Customer Experience Study Q2 2026** (`ap-001`) is Closed with 50 reconciled responses — default Same criteria Top-up is **50**. Gender criteria: Male, Female.
+- **Gamers — Xbox UK** (`ap-006`) is Closed with no reconciliation — default Same criteria Top-up is **10** (20% of 50).
 
 ---
 
@@ -312,18 +333,14 @@ Drawer sections, in order:
 
 ---
 
-## Wave groups
+## Unique responses
 
-**Availability:** Create project → Unique Responses → **Create wave group**
-**Purpose:** Create and manage unique-respondent wave groups. Respondents who complete one project in a group cannot take other projects in the same group.
+**Availability:** Create project → Unique responses
+**Purpose:** Exclude respondents who already took selected previously launched projects.
 
-**Modal tabs**
-- **Create wave group** — name, optional description, optional launched projects. Create Group assigns the new group to Unique Responses.
-- **Manage wave group** — list of existing groups. Open a group to see associated projects, update name or description, remove a project, or delete the group.
-
-**Manage wave group**
-- Associated projects lists every project currently assigned to the group (name, Project ID, Status)
-- **Save changes** persists name and description; the updated name is shown on Unique Responses and project overview Unique Responses
-- **Remove** unlinks a project from the group. The project remains in Specialized sample and is no longer associated with that wave group
-- **Delete wave group** removes the group from the system. It is no longer available when assigning Unique Responses. Associated projects are not deleted
+**Field**
+- Searchable multi-select of launched projects (not Bid)
+- The user can select more than one project
+- Selected projects appear as chips and can be removed
+- Empty selection means no unique-response restriction
 

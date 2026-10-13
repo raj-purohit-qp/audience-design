@@ -1,6 +1,7 @@
 import type { CountryOption } from './mock-project-create';
 import { calculateEstimate, formatEstimateDate } from './mock-project-create';
 import type {
+  ChildCountryProject,
   CountryDefinition,
   CountryPlan,
   GlobalCriterion,
@@ -11,7 +12,7 @@ import {
   slugifyChildName,
 } from './mock-multi-country';
 import { getSeededReconciledResponses, MOCK_AUDIENCE_PROJECTS } from './mock-audience-projects';
-import { DEFAULT_UNIQUE_RESPONSE_GROUPS } from './mock-unique-responses';
+import type { UniqueResponseProjectRef } from './mock-unique-responses';
 
 export type AudienceProjectDetailStatus = 'Draft' | 'Live' | 'Paused' | 'Closed';
 
@@ -53,10 +54,26 @@ export interface SingleCountryProjectDetail {
   originalRequiredResponses?: number;
   /** Approved/submitted reconciled response count — takes priority for Top-up default */
   reconciledResponses?: number;
-  uniqueResponseGroupId?: string;
-  uniqueResponseGroupName?: string;
+  uniqueResponseProjects?: UniqueResponseProjectRef[];
   demographics: AudienceProjectDemographics;
+  /** Optional balancing quotas for selected gender values */
+  genderQuotas?: Record<string, number>;
+  topUpOfProjectId?: string;
+  topUpOfProjectName?: string;
+  /** Child top-up projects launched from this parent */
+  topUpChildren?: TopUpChildRef[];
   qualificationNote: string;
+}
+
+export interface TopUpChildRef {
+  id: string;
+  name: string;
+  projectId: string;
+  status: AudienceProjectDetailStatus;
+  responses: number;
+  collected: number;
+  costPerInterview: number;
+  totalCost: number;
 }
 
 export function isMultiCountryProject(
@@ -111,6 +128,12 @@ export interface CreateProjectPayload {
   surveyLengthMinutes: number;
   completionDate?: Date;
   templateName?: string;
+  demographics?: AudienceProjectDemographics;
+  genderQuotas?: Record<string, number>;
+  uniqueResponseProjects?: UniqueResponseProjectRef[];
+  topUpOfProjectId?: string;
+  topUpOfProjectName?: string;
+  status?: AudienceProjectDetailStatus;
 }
 
 function generateProjectId(): string {
@@ -154,13 +177,92 @@ export function buildAudienceProjectDetail(payload: CreateProjectPayload): Singl
     costPerInterview: estimate.costPerInterview,
     originalRequiredResponses: payload.responses,
     reconciledResponses: 0,
-    demographics: DEFAULT_DEMOGRAPHICS,
+    demographics: payload.demographics ?? DEFAULT_DEMOGRAPHICS,
+    genderQuotas: payload.genderQuotas,
+    uniqueResponseProjects: payload.uniqueResponseProjects,
+    topUpOfProjectId: payload.topUpOfProjectId,
+    topUpOfProjectName: payload.topUpOfProjectName,
     qualificationNote: MOCK_PROJECT_DETAIL.qualificationNote,
+    ...(payload.status === 'Live'
+      ? {
+          status: 'Live' as const,
+          launchDate: formatEstimateDate(payload.completionDate) || 'Jun 2, 2026',
+          etcDate: formatEstimateDate(payload.completionDate) || 'Jun 26, 2026',
+          daysElapsed: 0,
+          velocityPerHour: 5,
+          realtimeIR: payload.incidenceRate,
+          realtimeLOI: payload.surveyLengthMinutes,
+        }
+      : {}),
   };
 }
 
 const STORAGE_PREFIX = 'audience-project:';
 const MULTI_STORAGE_PREFIX = 'multi-country-project:';
+const TOP_UP_NAME_SUFFIX = / Topup(\d+)$/;
+
+export function listStoredAudienceProjects(): SingleCountryProjectDetail[] {
+  if (typeof window === 'undefined') return [];
+  const items: SingleCountryProjectDetail[] = [];
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const key = sessionStorage.key(i);
+    if (!key?.startsWith(STORAGE_PREFIX)) continue;
+    try {
+      items.push(JSON.parse(sessionStorage.getItem(key) ?? '') as SingleCountryProjectDetail);
+    } catch {
+      /* ignore malformed entries */
+    }
+  }
+  return items;
+}
+
+function listStoredProjectNames(): string[] {
+  if (typeof window === 'undefined') return [];
+  const names = listStoredAudienceProjects().map((project) => project.name);
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const key = sessionStorage.key(i);
+    if (!key?.startsWith(MULTI_STORAGE_PREFIX)) continue;
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem(key) ?? '') as MultiCountryProjectDetail;
+      if (parsed.name) names.push(parsed.name);
+      parsed.children?.forEach((child) => names.push(child.name));
+    } catch {
+      /* ignore malformed entries */
+    }
+  }
+  MOCK_MULTI_COUNTRY_PARENT.children.forEach((child) => names.push(child.name));
+  return names;
+}
+
+function topUpNameIsTaken(
+  candidate: string,
+  taken: Set<string>,
+  countryCode?: string,
+): boolean {
+  if (taken.has(candidate)) return true;
+  const slugBase = candidate.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
+  const suffix = countryCode ? `_${countryCode}` : '_';
+  for (const name of taken) {
+    if (name.startsWith(`${slugBase}${suffix}`)) return true;
+  }
+  return false;
+}
+
+/** `{original} Topup1`, then Topup2 if that name is already used. */
+export function nextTopUpProjectName(sourceName: string, countryCode?: string): string {
+  const base = sourceName.replace(TOP_UP_NAME_SUFFIX, '');
+  const taken = new Set<string>([
+    ...MOCK_AUDIENCE_PROJECTS.map((project) => project.name),
+    ...listStoredProjectNames(),
+  ]);
+  let index = 1;
+  let candidate = `${base} Topup${index}`;
+  while (topUpNameIsTaken(candidate, taken, countryCode)) {
+    index += 1;
+    candidate = `${base} Topup${index}`;
+  }
+  return candidate;
+}
 
 export interface CreateMultiCountryPayload {
   name: string;
@@ -170,8 +272,7 @@ export interface CreateMultiCountryPayload {
   incidenceRate: number;
   surveyLengthMinutes: number;
   completionDate?: Date;
-  uniqueResponseGroupId?: string;
-  uniqueResponseGroupName?: string;
+  uniqueResponseProjects?: UniqueResponseProjectRef[];
 }
 
 export function buildMultiCountryProject(payload: CreateMultiCountryPayload): MultiCountryProjectDetail {
@@ -190,8 +291,7 @@ export function buildMultiCountryProject(payload: CreateMultiCountryPayload): Mu
     dueDate: formatEstimateDate(payload.completionDate) || 'Aug 15, 2026',
     incidenceRate: payload.incidenceRate,
     surveyLengthMinutes: payload.surveyLengthMinutes,
-    uniqueResponseGroupId: payload.uniqueResponseGroupId,
-    uniqueResponseGroupName: payload.uniqueResponseGroupName,
+    uniqueResponseProjects: payload.uniqueResponseProjects,
     globalCriteria: payload.globalCriteria,
     countries: payload.plans,
     children: payload.plans.map((plan) => ({
@@ -244,18 +344,6 @@ export function getMultiCountryProject(id: string): MultiCountryProjectDetail | 
   }
 }
 
-function uniqueResponseGroupForProject(projectId: string): {
-  uniqueResponseGroupId?: string;
-  uniqueResponseGroupName?: string;
-} {
-  const group = DEFAULT_UNIQUE_RESPONSE_GROUPS.find((item) => item.projectIds.includes(projectId));
-  if (!group) return {};
-  return {
-    uniqueResponseGroupId: group.id,
-    uniqueResponseGroupName: group.name,
-  };
-}
-
 export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
   const stored = getAudienceProject(id);
   if (stored) return stored;
@@ -288,7 +376,14 @@ export function resolveAudienceProject(id: string): SingleCountryProjectDetail {
     sameCpiPushCount: listProject.sameCpiPushCount ?? 0,
     originalRequiredResponses: listProject.completesTarget,
     reconciledResponses: getSeededReconciledResponses(listProject.id),
-    ...uniqueResponseGroupForProject(listProject.id),
+    ...(listProject.id === 'ap-001'
+      ? {
+          demographics: {
+            ...DEFAULT_DEMOGRAPHICS,
+            gender: ['Male', 'Female'],
+          },
+        }
+      : {}),
     ...(isLiveLike
       ? {
           launchDate: 'Jun 2, 2026',
@@ -315,4 +410,137 @@ export function saveProject(project: AudienceProjectDetail): void {
   } else {
     saveAudienceProject(project);
   }
+}
+
+/** Attach a launched top-up as a child of the original project and increase the parent target. */
+export function attachTopUpChild(
+  parent: SingleCountryProjectDetail,
+  child: SingleCountryProjectDetail,
+): { parent: SingleCountryProjectDetail; child: SingleCountryProjectDetail } {
+  const linkedChild: SingleCountryProjectDetail = {
+    ...child,
+    status: 'Live',
+    topUpOfProjectId: parent.id,
+    topUpOfProjectName: parent.name,
+  };
+  const childRef: TopUpChildRef = {
+    id: linkedChild.id,
+    name: linkedChild.name,
+    projectId: linkedChild.projectId,
+    status: linkedChild.status,
+    responses: linkedChild.responses,
+    collected: linkedChild.collected,
+    costPerInterview: linkedChild.costPerInterview,
+    totalCost: linkedChild.totalCost,
+  };
+  const nextParent: SingleCountryProjectDetail = {
+    ...parent,
+    status: 'Closed',
+    originalRequiredResponses: parent.originalRequiredResponses ?? parent.responses,
+    responses: parent.responses + linkedChild.responses,
+    totalCost: Number((parent.totalCost + linkedChild.totalCost).toFixed(2)),
+    topUpChildren: [...(parent.topUpChildren ?? []), childRef],
+  };
+  saveAudienceProject(nextParent);
+  saveAudienceProject(linkedChild);
+  return { parent: nextParent, child: linkedChild };
+}
+
+function audienceSummaryFromDemographics(demographics: AudienceProjectDemographics): string {
+  const gender = demographics.gender.join('/');
+  const age =
+    demographics.ageGroups.length > 0
+      ? `${demographics.ageGroups[0]}–${demographics.ageGroups[demographics.ageGroups.length - 1]}`
+      : '';
+  return [age, gender].filter(Boolean).join(', ');
+}
+
+export function demographicsFromGlobalCriteria(
+  criteria: GlobalCriterion[],
+): AudienceProjectDemographics {
+  const genderValue = criteria.find((item) => item.id === 'gender')?.value ?? 'Male / Female';
+  const gender = genderValue
+    .split('/')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return {
+    ...DEFAULT_DEMOGRAPHICS,
+    gender: gender.length > 0 ? gender : DEFAULT_DEMOGRAPHICS.gender,
+  };
+}
+
+export function perCountryRequiredResponses(project: MultiCountryProjectDetail): number {
+  if (project.originalRequiredResponses && project.originalRequiredResponses > 0) {
+    return project.originalRequiredResponses;
+  }
+  if (project.countries.length > 0) {
+    return Math.round(
+      project.countries.reduce((sum, plan) => sum + plan.responses, 0) / project.countries.length,
+    );
+  }
+  if (project.children.length === 0) return 0;
+  return Math.round(
+    project.children.reduce((sum, child) => sum + child.responses, 0) / project.children.length,
+  );
+}
+
+export function countryOriginalRequired(
+  project: MultiCountryProjectDetail,
+  countryCode: string,
+): number {
+  const original = project.children.find(
+    (child) => child.countryCode === countryCode && !child.id.includes('-topup-'),
+  );
+  if (original) return original.responses;
+  const plan = project.countries.find((item) => item.countryCode === countryCode);
+  return plan?.responses ?? perCountryRequiredResponses(project);
+}
+
+/** Add a Live top-up child for one country under a closed multi-country parent. */
+export function attachMultiCountryTopUp(
+  parent: MultiCountryProjectDetail,
+  payload: {
+    name: string;
+    countryCode: string;
+    responses: number;
+    incidenceRate: number;
+    surveyLengthMinutes: number;
+    demographics?: AudienceProjectDemographics;
+  },
+): MultiCountryProjectDetail {
+  const plan = parent.countries.find((item) => item.countryCode === payload.countryCode);
+  if (!plan) return parent;
+
+  const originalChild = parent.children.find(
+    (child) => child.countryCode === payload.countryCode && !child.id.includes('-topup-'),
+  );
+  const summary = payload.demographics
+    ? audienceSummaryFromDemographics(payload.demographics)
+    : originalChild?.audienceSummary ??
+      parent.globalCriteria.slice(0, 3).map((c) => c.label).join(', ');
+
+  const newChild: ChildCountryProject = {
+    id: `${parent.id}-topup-${Date.now()}-${plan.countryCode.toLowerCase()}`,
+    parentId: parent.id,
+    countryCode: plan.countryCode,
+    name: slugifyChildName(payload.name, plan.countryCode),
+    projectId: `QP-MC${Math.floor(1000 + Math.random() * 9000)}-${plan.countryCode}`,
+    status: 'Live',
+    responses: payload.responses,
+    collected: 0,
+    cpi: plan.cpi,
+    totalCost: Number((plan.cpi * payload.responses).toFixed(2)),
+    currentIr: payload.incidenceRate,
+    feasibility: plan.feasibility,
+    audienceSummary: summary,
+  };
+
+  const nextParent: MultiCountryProjectDetail = {
+    ...parent,
+    status: 'Closed',
+    originalRequiredResponses: parent.originalRequiredResponses ?? perCountryRequiredResponses(parent),
+    children: [...parent.children, newChild],
+  };
+  saveMultiCountryProject(nextParent);
+  return nextParent;
 }

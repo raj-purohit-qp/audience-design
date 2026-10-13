@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
-/** Shared horizontal gutter for dashboard detail pages (matches projects list px-6). */
-export const detailPageGutter = 'mx-auto max-w-[1320px] px-6';
+/** Shared horizontal gutter for dashboard detail pages — full content width. */
+export const detailPageGutter = 'w-full px-6 lg:px-8';
 
 export function DetailPageContent({
   children,
