@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { CollectionProgressSection } from '@/components/projects/CollectionProgressSection';
+import { TopUpChildrenSection } from '@/components/projects/TopUpChildrenSection';
 import { MetricCard, MetricIconBadge } from '@/components/ui/MetricCard';
 import { DetailPageContent } from '@/components/ui/page-layout';
 
@@ -387,6 +388,10 @@ export function ProjectDashboard({ project, onPush }: ProjectDashboardProps) {
         />
       )}
 
+      {project.topUpChildren && project.topUpChildren.length > 0 && (
+        <TopUpChildrenSection childrenProjects={project.topUpChildren} />
+      )}
+
       <section>
         <WuHeading size="md" className="mb-4">
           Launch criteria &amp; audience configuration
@@ -426,7 +431,14 @@ export function ProjectDashboard({ project, onPush }: ProjectDashboardProps) {
           >
             <div className="space-y-3.5">
               {[
-                { label: 'Gender', tags: project.demographics.gender },
+                {
+                  label: 'Gender',
+                  tags: project.demographics.gender.map((tag) =>
+                    project.genderQuotas?.[tag]
+                      ? `${tag} · quota ${project.genderQuotas[tag]}`
+                      : tag,
+                  ),
+                },
                 { label: 'Age groups', tags: project.demographics.ageGroups },
                 { label: 'Education', tags: project.demographics.education },
                 { label: 'Income', tags: project.demographics.income },
@@ -451,9 +463,15 @@ export function ProjectDashboard({ project, onPush }: ProjectDashboardProps) {
           >
             <div className="flex flex-col gap-4 py-4">
               <div>
-                <FieldLabel>Unique Responses</FieldLabel>
+                <FieldLabel>Unique responses</FieldLabel>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <Chip>{project.uniqueResponseGroupName ?? 'None'}</Chip>
+                  {project.uniqueResponseProjects && project.uniqueResponseProjects.length > 0 ? (
+                    project.uniqueResponseProjects.map((item) => (
+                      <Chip key={item.id}>{item.name}</Chip>
+                    ))
+                  ) : (
+                    <Chip>None</Chip>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col items-center gap-3 text-center">

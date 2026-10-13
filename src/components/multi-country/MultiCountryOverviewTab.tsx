@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import type {
-  ChildCountryProject,
-  MultiCountryProjectDetail,
-} from '@/data/mock-multi-country';
+import { useRouter, useSearchParams } from 'next/navigation';
+import type { MultiCountryProjectDetail } from '@/data/mock-multi-country';
 import { getCountryByCode } from '@/data/mock-multi-country';
 import { formatCurrency } from '@/data/mock-audience-projects';
 import { CollectionProgressSection } from '@/components/projects/CollectionProgressSection';
@@ -247,28 +245,44 @@ function aggregateMetrics(project: MultiCountryProjectDetail) {
   return { collected, required, budget, spent, avgCpi, avgIr };
 }
 
-function countryMetrics(child: ChildCountryProject) {
-  return {
-    collected: child.collected,
-    required: child.responses,
-    budget: child.totalCost,
-    spent: Number((child.collected * child.cpi).toFixed(2)),
-    avgCpi: child.cpi,
-    avgIr: child.currentIr,
-  };
-}
-
 interface MultiCountryOverviewTabProps {
   project: MultiCountryProjectDetail;
+  onCountryViewChange?: (countryCode: string) => void;
 }
 
-export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProps) {
-  const [countryView, setCountryView] = useState<CountryView>('all');
+export function MultiCountryOverviewTab({
+  project,
+  onCountryViewChange,
+}: MultiCountryOverviewTabProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const countryParam = searchParams.get('country');
+  const [countryView, setCountryView] = useState<CountryView>(
+    countryParam && countryParam !== 'all' ? countryParam : 'all',
+  );
+
+  const originalChildren = useMemo(
+    () => project.children.filter((child) => !child.id.includes('-topup-')),
+    [project.children],
+  );
+  const topUpChildren = useMemo(
+    () => project.children.filter((child) => child.id.includes('-topup-')),
+    [project.children],
+  );
+
+  useEffect(() => {
+    if (!countryParam || countryParam === 'all') {
+      setCountryView('all');
+      return;
+    }
+    setCountryView(countryParam);
+    onCountryViewChange?.(countryParam);
+  }, [countryParam, onCountryViewChange]);
 
   const selectOptions = useMemo(
     () => [
       { value: 'all', label: 'All' },
-      ...project.children.map((c) => {
+      ...originalChildren.map((c) => {
         const country = getCountryByCode(c.countryCode);
         return {
           value: c.countryCode,
@@ -276,29 +290,58 @@ export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProp
         };
       }),
     ],
-    [project.children],
+    [originalChildren],
   );
 
   const selectedChild =
     countryView === 'all'
       ? null
-      : (project.children.find((c) => c.countryCode === countryView) ?? null);
+      : (originalChildren.find((c) => c.countryCode === countryView) ?? null);
 
   const isAll = countryView === 'all';
-  const metrics = selectedChild
-    ? countryMetrics(selectedChild)
-    : aggregateMetrics(project);
+  const countryChildren = isAll
+    ? project.children
+    : project.children.filter((child) => child.countryCode === countryView);
+  const metrics = isAll
+    ? aggregateMetrics(project)
+    : selectedChild
+      ? {
+          collected: countryChildren.reduce((sum, child) => sum + child.collected, 0),
+          required: countryChildren.reduce((sum, child) => sum + child.responses, 0),
+          budget: countryChildren.reduce((sum, child) => sum + child.totalCost, 0),
+          spent: countryChildren.reduce(
+            (sum, child) => sum + Number((child.collected * child.cpi).toFixed(2)),
+            0,
+          ),
+          avgCpi:
+            countryChildren.length > 0
+              ? countryChildren.reduce((sum, child) => sum + child.cpi, 0) / countryChildren.length
+              : selectedChild.cpi,
+          avgIr:
+            countryChildren.length > 0
+              ? Math.round(
+                  countryChildren.reduce((sum, child) => sum + child.currentIr, 0) /
+                    countryChildren.length,
+                )
+              : selectedChild.currentIr,
+        }
+      : aggregateMetrics(project);
 
   const isLaunched = project.status !== 'Draft' && project.status !== 'Bid';
-  const showProgress = isLaunched && project.status !== 'Closed';
+  const hasCollectingChildren = project.children.some(
+    (child) => child.status === 'Live' || child.status === 'Paused' || child.status === 'Soft-launched',
+  );
+  const showProgress = isLaunched && (project.status !== 'Closed' || hasCollectingChildren);
   const selectedLabel =
     selectOptions.find((o) => o.value === countryView)?.label ?? 'All';
 
   const geographyChips = isAll
-    ? project.children.map((c) => {
-        const country = getCountryByCode(c.countryCode);
-        return `${country?.flag ?? ''} ${country?.label ?? c.countryCode}`.trim();
-      })
+    ? [...new Set(
+        project.countries.map((plan) => {
+          const country = getCountryByCode(plan.countryCode);
+          return `${country?.flag ?? ''} ${country?.label ?? plan.countryCode}`.trim();
+        }),
+      )]
     : [
         `${getCountryByCode(selectedChild?.countryCode ?? '')?.flag ?? ''} ${
           getCountryByCode(selectedChild?.countryCode ?? '')?.label ??
@@ -325,7 +368,16 @@ export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProp
           data={selectOptions}
           accessorKey={{ value: 'value', label: 'label' }}
           value={{ value: countryView, label: selectedLabel }}
-          onSelect={(v) => setCountryView((v as { value: string }).value)}
+          onSelect={(v) => {
+            const next = (v as { value: string }).value;
+            setCountryView(next);
+            onCountryViewChange?.(next === 'all' ? '' : next);
+            const path =
+              next && next !== 'all'
+                ? `/projects/${project.id}?country=${next}`
+                : `/projects/${project.id}`;
+            router.replace(path, { scroll: false });
+          }}
           Label="Country"
           variant="outlined"
           className="min-w-[200px]"
@@ -419,8 +471,23 @@ export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProp
         />
       )}
 
-      {isAll && project.children.length > 0 && (
-        <CountriesProgressSection countries={project.children} />
+      {isAll ? (
+        <>
+          <CountriesProgressSection
+            countries={originalChildren.length > 0 ? originalChildren : project.children}
+          />
+          <CountriesProgressSection
+            countries={topUpChildren}
+            title="Top-up projects"
+            description="Additional responses collecting under this project"
+          />
+        </>
+      ) : (
+        <CountriesProgressSection
+          countries={topUpChildren.filter((child) => child.countryCode === countryView)}
+          title="Top-up projects"
+          description="Additional responses collecting for this country"
+        />
       )}
 
       <section>
@@ -476,7 +543,7 @@ export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProp
             iconFg="text-[#54606b]"
           >
             <div className="space-y-3">
-              {project.globalCriteria
+                {project.globalCriteria
                 .filter((c) => c.category !== 'Demographics')
                 .map((c) => (
                   <div key={c.id}>
@@ -484,6 +551,18 @@ export function MultiCountryOverviewTab({ project }: MultiCountryOverviewTabProp
                     <Chip>{c.value}</Chip>
                   </div>
                 ))}
+              <div>
+                <FieldLabel>Unique responses</FieldLabel>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {project.uniqueResponseProjects && project.uniqueResponseProjects.length > 0 ? (
+                    project.uniqueResponseProjects.map((item) => (
+                      <Chip key={item.id}>{item.name}</Chip>
+                    ))
+                  ) : (
+                    <Chip>None</Chip>
+                  )}
+                </div>
+              </div>
               <p className="pt-1 text-[13px] leading-relaxed text-[#8c9baa]">
                 {audienceSummary}
               </p>

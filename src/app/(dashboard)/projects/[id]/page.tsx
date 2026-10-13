@@ -22,15 +22,21 @@ import {
 } from '@/data/mock-workspace';
 import { setActiveWorkspaceId } from '@/data/workspace-session';
 import {
+  attachMultiCountryTopUp,
+  attachTopUpChild,
+  buildAudienceProjectDetail,
+  countryOriginalRequired,
   isMultiCountryProject,
+  nextTopUpProjectName,
+  perCountryRequiredResponses,
   resolveProject,
   saveProject,
   type AudienceProjectDetail,
   type SingleCountryProjectDetail,
 } from '@/data/audience-project-store';
+import { getCountryByCode, MULTI_COUNTRY_CATALOG } from '@/data/mock-multi-country';
 import { formatCurrency, type PushProjectResult } from '@/data/mock-audience-projects';
 import { markAudienceProjectLaunched } from '@/data/mock-home';
-import { withLiveUniqueResponseGroup } from '@/data/mock-unique-responses';
 
 const WuTab = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTab })),
@@ -64,9 +70,10 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState('details');
   const [pushOpen, setPushOpen] = useState(false);
   const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpCountry, setTopUpCountry] = useState('');
 
   useEffect(() => {
-    setProject(withLiveUniqueResponseGroup(resolveProject(id)));
+    setProject(resolveProject(id));
   }, [id]);
 
   const ownerId = project ? getProjectOwnerId(project.id) : null;
@@ -97,7 +104,7 @@ export default function ProjectDetailPage() {
 
   function persist(updated: AudienceProjectDetail) {
     saveProject(updated);
-    setProject(withLiveUniqueResponseGroup(updated));
+    setProject(updated);
   }
 
   function handleEdit() {
@@ -136,7 +143,13 @@ export default function ProjectDetailPage() {
   function handleClose() {
     if (!project || readOnly) return;
     if (isMultiCountryProject(project)) {
-      persist({ ...project, status: 'Closed' });
+      persist({
+        ...project,
+        status: 'Closed',
+        originalRequiredResponses:
+          project.originalRequiredResponses ?? perCountryRequiredResponses(project),
+        children: project.children.map((child) => ({ ...child, status: 'Closed' as const })),
+      });
     } else {
       persist({
         ...project,
@@ -148,22 +161,47 @@ export default function ProjectDetailPage() {
   }
 
   function handleTopUpConfirm(additionalResponses: number) {
-    if (!project || isMultiCountryProject(project) || readOnly) return;
-    const nextRequired = project.responses + additionalResponses;
-    const originalRequired = project.originalRequiredResponses ?? project.responses;
-    persist({
-      ...project,
+    if (!project || readOnly) return;
+    if (!isMultiCountryProject(project) && project.topUpOfProjectId) return;
+    if (isMultiCountryProject(project)) {
+      if (!topUpCountry) return;
+      const country = getCountryByCode(topUpCountry);
+      const parent = attachMultiCountryTopUp(project, {
+        name: nextTopUpProjectName(project.name, topUpCountry),
+        countryCode: topUpCountry,
+        responses: additionalResponses,
+        incidenceRate: project.incidenceRate,
+        surveyLengthMinutes: project.surveyLengthMinutes,
+      });
+      persist(parent);
+      markAudienceProjectLaunched();
+      showToast({
+        message: `Top-up started — collecting ${additionalResponses.toLocaleString()} additional responses in ${country?.label ?? topUpCountry}.`,
+        variant: 'success',
+      });
+      return;
+    }
+    const country =
+      MULTI_COUNTRY_CATALOG.find((item) => item.label === project.country) ??
+      MULTI_COUNTRY_CATALOG[0];
+    const child = buildAudienceProjectDetail({
+      name: nextTopUpProjectName(project.name),
+      country,
+      responses: additionalResponses,
+      incidenceRate: project.incidenceRate,
+      surveyLengthMinutes: project.surveyLengthMinutes,
+      demographics: project.demographics,
+      genderQuotas: project.genderQuotas,
+      uniqueResponseProjects: project.uniqueResponseProjects,
       status: 'Live',
-      originalRequiredResponses: originalRequired,
-      responses: nextRequired,
-      totalCost: Number((project.costPerInterview * nextRequired).toFixed(2)),
-      launchDate: project.launchDate ?? 'Jun 2, 2026',
-      etcDate: project.etcDate ?? 'Jun 26, 2026',
-      daysElapsed: project.daysElapsed ?? 0,
-      velocityPerHour: project.velocityPerHour ?? 5,
-      realtimeIR: project.realtimeIR ?? project.incidenceRate,
-      realtimeLOI: project.realtimeLOI ?? project.surveyLengthMinutes,
     });
+    const { parent } = attachTopUpChild(project, {
+      ...child,
+      costPerInterview: project.costPerInterview,
+      totalCost: Number((project.costPerInterview * additionalResponses).toFixed(2)),
+    });
+    persist(parent);
+    markAudienceProjectLaunched();
     showToast({
       message: `Top-up started — collecting ${additionalResponses.toLocaleString()} additional responses.`,
       variant: 'success',
@@ -220,6 +258,11 @@ export default function ProjectDetailPage() {
   }
 
   if (isMultiCountryProject(project)) {
+    const selectedOriginalChild = project.children.find(
+      (child) => child.countryCode === topUpCountry && !child.id.includes('-topup-'),
+    );
+    const showCountryTopUp = !readOnly && selectedOriginalChild?.status === 'Closed';
+
     const tabItems: IWuTabItem[] = [
       {
         value: 'overview',
@@ -229,7 +272,12 @@ export default function ProjectDetailPage() {
             Overview
           </span>
         ),
-        Content: <MultiCountryOverviewTab project={project} />,
+        Content: (
+          <MultiCountryOverviewTab
+            project={project}
+            onCountryViewChange={setTopUpCountry}
+          />
+        ),
       },
       {
         value: 'reconciliation',
@@ -257,6 +305,7 @@ export default function ProjectDetailPage() {
           onPause={handlePause}
           onResume={handleResume}
           onClose={handleClose}
+          onTopUp={showCountryTopUp ? () => setTopUpOpen(true) : undefined}
           readOnly={readOnly}
         />
         <div className="border-b border-[#e0e4e8] bg-white">
@@ -264,6 +313,23 @@ export default function ProjectDetailPage() {
             <WuTab items={tabItems} defaultValue="overview" className="w-full" />
           </DetailTabContainer>
         </div>
+        <TopUpModal
+          open={topUpOpen}
+          onOpenChange={setTopUpOpen}
+          originalRequiredResponses={
+            topUpCountry
+              ? countryOriginalRequired(project, topUpCountry)
+              : perCountryRequiredResponses(project)
+          }
+          reconciledResponses={project.reconciledResponses ?? 0}
+          quantityNote="This quantity is added to this country only."
+          sameCriteriaDescription="Keep this country’s targeting and add responses for it only."
+          onConfirmSameCriteria={handleTopUpConfirm}
+          onEditCriteria={() => {
+            if (!topUpCountry) return;
+            router.push(`/projects/create?topUpFrom=${project.id}&country=${topUpCountry}`);
+          }}
+        />
       </div>
     );
   }
@@ -319,7 +385,9 @@ export default function ProjectDetailPage() {
         onPause={handlePause}
         onResume={handleResume}
         onClose={handleClose}
-        onTopUp={readOnly ? undefined : () => setTopUpOpen(true)}
+        onTopUp={
+          readOnly || project.topUpOfProjectId ? undefined : () => setTopUpOpen(true)
+        }
         readOnly={readOnly}
       />
       <div className="border-b border-[#e0e4e8] bg-white">
@@ -346,7 +414,8 @@ export default function ProjectDetailPage() {
         onOpenChange={setTopUpOpen}
         originalRequiredResponses={project.originalRequiredResponses ?? project.responses}
         reconciledResponses={project.reconciledResponses ?? 0}
-        onConfirm={handleTopUpConfirm}
+        onConfirmSameCriteria={handleTopUpConfirm}
+        onEditCriteria={() => router.push(`/projects/create?topUpFrom=${project.id}`)}
       />
     </div>
   );

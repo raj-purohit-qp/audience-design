@@ -42,16 +42,22 @@ function statusChipColor(
 
 interface CountriesProgressSectionProps {
   countries: ChildCountryProject[];
+  title?: string;
+  description?: string;
 }
 
-export function CountriesProgressSection({ countries }: CountriesProgressSectionProps) {
+export function CountriesProgressSection({
+  countries,
+  title = 'Countries',
+  description = 'Progress for each country in this project',
+}: CountriesProgressSectionProps) {
+  if (countries.length === 0) return null;
+
   return (
     <WuCard rounded className="mb-5 overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
       <WuCardHeader className="flex flex-col items-start gap-0.5">
-        <WuHeading size="sm">Countries</WuHeading>
-        <p className="text-sm font-normal text-[#8c9baa]">
-          Progress for each country in this project
-        </p>
+        <WuHeading size="sm">{title}</WuHeading>
+        <p className="text-sm font-normal text-[#8c9baa]">{description}</p>
       </WuCardHeader>
 
       <ul className="divide-y divide-[#eef0f3]">
@@ -71,13 +77,15 @@ export function CountriesProgressSection({ countries }: CountriesProgressSection
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-[#1a2340]">
                     {country?.flag ? `${country.flag} ` : ''}
-                    {country?.label ?? child.countryCode}
+                    {child.name}
                   </span>
                   <WuChip size="sm" shape="rounded" color={statusChipColor(child.status)}>
                     {child.status}
                   </WuChip>
                 </div>
-                <p className="mt-0.5 text-xs text-[#8c9baa]">{child.projectId}</p>
+                <p className="mt-0.5 text-xs text-[#8c9baa]">
+                  {country?.label ?? child.countryCode} · {child.projectId}
+                </p>
               </div>
 
               <div className="min-w-[12rem] flex-[1.5]">

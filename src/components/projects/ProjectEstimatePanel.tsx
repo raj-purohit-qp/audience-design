@@ -46,6 +46,7 @@ interface ProjectEstimatePanelProps {
   onCreateProject: () => void;
   countryCount?: number;
   countryBreakdown?: CountryCostBreakdownRow[];
+  actionLabel?: string;
 }
 
 export function ProjectEstimatePanel({
@@ -55,6 +56,7 @@ export function ProjectEstimatePanel({
   onCreateProject,
   countryCount,
   countryBreakdown = [],
+  actionLabel = 'Create project',
 }: ProjectEstimatePanelProps) {
   const isFeasible = estimate.feasibility === 'high';
   const isMultiCountry = (countryCount ?? countryBreakdown.length) > 1;
@@ -173,7 +175,7 @@ export function ProjectEstimatePanel({
           </div>
 
           <WuButton className="w-full" color="primary" onClick={onCreateProject}>
-            Create project
+            {actionLabel}
           </WuButton>
         </div>
 

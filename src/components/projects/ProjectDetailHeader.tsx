@@ -1,8 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import type { SingleCountryProjectDetail } from '@/data/audience-project-store';
 import { detailPageGutter } from '@/components/ui/page-layout';
+import { ProjectHeaderAnalyticsActions } from '@/components/projects/ProjectHeaderAnalyticsActions';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -75,10 +77,22 @@ export function ProjectDetailHeader({
         { icon: 'wm-event', text: `Due ${project.dueDate}` },
       ];
 
-  if (project.uniqueResponseGroupName) {
+  if (project.topUpOfProjectId && project.topUpOfProjectName) {
+    metaItems.push({
+      icon: 'wm-add',
+      text: `Top-up of ${project.topUpOfProjectName}`,
+      href: `/projects/${project.topUpOfProjectId}`,
+    });
+  }
+
+  if (project.uniqueResponseProjects && project.uniqueResponseProjects.length > 0) {
+    const names = project.uniqueResponseProjects.map((item) => item.name);
     metaItems.push({
       icon: 'wm-group',
-      text: `Unique responses: ${project.uniqueResponseGroupName}`,
+      text:
+        names.length === 1
+          ? `Unique responses: ${names[0]}`
+          : `Unique responses: ${names.length} projects`,
     });
   }
 
@@ -98,6 +112,16 @@ export function ProjectDetailHeader({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {metaItems.map((item) =>
               item.href ? (
+                item.href.startsWith('/projects/') ? (
+                  <Link
+                    key={item.text}
+                    href={item.href}
+                    className="inline-flex items-center gap-1 text-sm text-[#54606b] hover:text-[#1b87e6]"
+                  >
+                    <span className={`${item.icon} text-[15px]`} aria-hidden="true" />
+                    <span className="max-w-[280px] truncate">{item.text}</span>
+                  </Link>
+                ) : (
                 <a
                   key={item.text}
                   href={item.href}
@@ -107,6 +131,7 @@ export function ProjectDetailHeader({
                   <span className={`${item.icon} text-[15px]`} aria-hidden="true" />
                   <span className="max-w-[280px] truncate">{item.text}</span>
                 </a>
+                )
               ) : (
                 <WuSubtext key={item.text} size="sm" className="inline-flex items-center gap-1">
                   <span className={`${item.icon} text-[15px]`} aria-hidden="true" />
@@ -117,9 +142,9 @@ export function ProjectDetailHeader({
           </div>
         </div>
 
-        {!readOnly && (
+        {(!readOnly || !isDraft) && (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {isDraft && (
+          {!readOnly && isDraft && (
             <>
               <WuButton
                 variant="outlined"
@@ -140,7 +165,43 @@ export function ProjectDetailHeader({
             </>
           )}
 
-          {project.status === 'Closed' && onTopUp && (
+          {!readOnly && isLive && (
+            <WuButton
+              variant="outlined"
+              color="primary"
+              Icon={<span className="wm-pause" />}
+              iconPosition="left"
+              onClick={onPause}
+            >
+              Pause
+            </WuButton>
+          )}
+
+          {!readOnly && project.status === 'Paused' && (
+            <WuButton
+              variant="outlined"
+              color="primary"
+              Icon={<span className="wm-play-arrow" />}
+              iconPosition="left"
+              onClick={onResume}
+            >
+              Resume
+            </WuButton>
+          )}
+
+          {!readOnly && (isLive || project.status === 'Paused') && (
+            <WuButton
+              variant="outlined"
+              color="error"
+              Icon={<span className="wm-cancel" />}
+              iconPosition="left"
+              onClick={onClose}
+            >
+              Close
+            </WuButton>
+          )}
+
+          {!readOnly && project.status === 'Closed' && onTopUp && (
             <WuTooltip content="Collect additional responses for this project." position="top" showArrow>
               <WuButton
                 variant="outlined"
@@ -154,41 +215,7 @@ export function ProjectDetailHeader({
             </WuTooltip>
           )}
 
-          {isLive && (
-            <WuButton
-              variant="outlined"
-              color="primary"
-              Icon={<span className="wm-pause" />}
-              iconPosition="left"
-              onClick={onPause}
-            >
-              Pause
-            </WuButton>
-          )}
-
-          {project.status === 'Paused' && (
-            <WuButton
-              variant="outlined"
-              color="primary"
-              Icon={<span className="wm-play-arrow" />}
-              iconPosition="left"
-              onClick={onResume}
-            >
-              Resume
-            </WuButton>
-          )}
-
-          {(isLive || project.status === 'Paused') && (
-            <WuButton
-              variant="outlined"
-              color="error"
-              Icon={<span className="wm-cancel" />}
-              iconPosition="left"
-              onClick={onClose}
-            >
-              Close
-            </WuButton>
-          )}
+          {!isDraft && <ProjectHeaderAnalyticsActions />}
         </div>
         )}
       </div>

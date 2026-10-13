@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { MultiCountryProjectDetail } from '@/data/mock-multi-country';
 import { detailPageGutter } from '@/components/ui/page-layout';
+import { ProjectHeaderAnalyticsActions } from '@/components/projects/ProjectHeaderAnalyticsActions';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -18,6 +19,10 @@ const WuHeading = dynamic(
 );
 const WuSubtext = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuSubtext })),
+  { ssr: false },
+);
+const WuTooltip = dynamic(
+  () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuTooltip })),
   { ssr: false },
 );
 
@@ -36,6 +41,7 @@ interface MultiCountryProjectHeaderProps {
   onPause: () => void;
   onResume: () => void;
   onClose: () => void;
+  onTopUp?: () => void;
   readOnly?: boolean;
 }
 
@@ -45,9 +51,11 @@ export function MultiCountryProjectHeader({
   onPause,
   onResume,
   onClose,
+  onTopUp,
   readOnly = false,
 }: MultiCountryProjectHeaderProps) {
-  const isDraft = project.status === 'Draft';
+  const isDraft = project.status === 'Draft' || project.status === 'Bid';
+  const showAnalytics = !isDraft;
 
   const metaItems: { icon: string; text: string; href?: string }[] = isDraft
     ? [
@@ -68,10 +76,14 @@ export function MultiCountryProjectHeader({
         { icon: 'wm-public', text: `${project.countries.length} countries` },
       ];
 
-  if (project.uniqueResponseGroupName) {
+  if (project.uniqueResponseProjects && project.uniqueResponseProjects.length > 0) {
+    const names = project.uniqueResponseProjects.map((item) => item.name);
     metaItems.push({
       icon: 'wm-group',
-      text: `Unique responses: ${project.uniqueResponseGroupName}`,
+      text:
+        names.length === 1
+          ? `Unique responses: ${names[0]}`
+          : `Unique responses: ${names.length} projects`,
     });
   }
 
@@ -110,14 +122,14 @@ export function MultiCountryProjectHeader({
           </div>
         </div>
 
-        {!readOnly && (
-        <div className="flex shrink-0 items-center gap-2">
-          {project.status === 'Draft' && (
+        {(!readOnly || showAnalytics) && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {!readOnly && project.status === 'Draft' && (
             <WuButton Icon={<span className="wm-rocket-launch" />} iconPosition="left" onClick={onLaunch}>
               Launch survey
             </WuButton>
           )}
-          {project.status === 'Live' && (
+          {!readOnly && project.status === 'Live' && (
             <>
               <WuButton variant="outlined" color="primary" Icon={<span className="wm-pause" />} iconPosition="left" onClick={onPause}>
                 Pause survey
@@ -127,16 +139,25 @@ export function MultiCountryProjectHeader({
               </WuButton>
             </>
           )}
-          {project.status === 'Paused' && (
+          {!readOnly && project.status === 'Paused' && (
             <WuButton variant="outlined" color="primary" Icon={<span className="wm-play-arrow" />} iconPosition="left" onClick={onResume}>
               Resume survey
             </WuButton>
           )}
-          {project.status === 'Closed' && (
-            <WuButton variant="outlined" disabled Icon={<span className="wm-cancel" />} iconPosition="left">
-              Closed
-            </WuButton>
+          {!readOnly && onTopUp && (
+            <WuTooltip content="Collect additional responses for this country." position="top" showArrow>
+              <WuButton
+                variant="outlined"
+                color="primary"
+                Icon={<span className="wm-add" />}
+                iconPosition="left"
+                onClick={onTopUp}
+              >
+                Top-up
+              </WuButton>
+            </WuTooltip>
           )}
+          {showAnalytics && <ProjectHeaderAnalyticsActions />}
         </div>
         )}
       </div>

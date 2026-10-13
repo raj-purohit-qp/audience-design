@@ -73,8 +73,10 @@ export interface MultiCountryProjectDetail {
   launchDate?: string;
   incidenceRate: number;
   surveyLengthMinutes: number;
-  uniqueResponseGroupId?: string;
-  uniqueResponseGroupName?: string;
+  uniqueResponseProjects?: { id: string; name: string }[];
+  /** Per-country required responses when the project first closed — used for Top-up default */
+  originalRequiredResponses?: number;
+  reconciledResponses?: number;
   globalCriteria: GlobalCriterion[];
   countries: CountryPlan[];
   children: ChildCountryProject[];
@@ -280,8 +282,9 @@ export const MOCK_MULTI_COUNTRY_PARENT: MultiCountryProjectDetail = {
   launchDate: 'Jun 1, 2026',
   incidenceRate: 45,
   surveyLengthMinutes: 12,
-  uniqueResponseGroupId: 'urg-1',
-  uniqueResponseGroupName: 'Brand Tracking 2026',
+  uniqueResponseProjects: [
+    { id: 'ap-003', name: 'Streaming Subscribers Brand Tracker Wave 2' },
+  ],
   globalCriteria: GLOBAL_CRITERIA,
   countries: [
     { countryCode: 'US', responses: 500, cpi: 3.2, estimatedCost: 1600, setupStatus: 'ready', feasibility: 'high', configured: true, overrides: [], unresolvedIssues: [] },

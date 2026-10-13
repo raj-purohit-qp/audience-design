@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useWuShowToast } from '@npm-questionpro/wick-ui-lib';
@@ -10,6 +10,7 @@ import { CheckWithAiButton } from '@/components/projects/CheckWithAiButton';
 import { IrAiWorkflowModal } from '@/components/projects/IrAiWorkflowModal';
 import { SelectSurveyModal } from '@/components/projects/SelectSurveyModal';
 import { UniqueResponsesField } from '@/components/projects/UniqueResponsesField';
+import { TopUpCriteriaEditor } from '@/components/projects/TopUpCriteriaEditor';
 import {
   ProjectEstimatePanel,
   type CountryCostBreakdownRow,
@@ -34,13 +35,24 @@ import {
   getCountryByCode,
   type CountryDefinition,
 } from '@/data/mock-multi-country';
-import { buildMultiCountryProject, saveMultiCountryProject } from '@/data/audience-project-store';
+import {
+  attachMultiCountryTopUp,
+  attachTopUpChild,
+  buildAudienceProjectDetail,
+  buildMultiCountryProject,
+  countryOriginalRequired,
+  DEFAULT_DEMOGRAPHICS,
+  demographicsFromGlobalCriteria,
+  isMultiCountryProject,
+  nextTopUpProjectName,
+  saveMultiCountryProject,
+  type AudienceProjectDemographics,
+  type AudienceProjectDetail,
+} from '@/data/audience-project-store';
+import { defaultTopUpQuantity } from '@/data/mock-audience-projects';
 import { markAudienceProjectLaunched } from '@/data/mock-home';
 import { US_APPLIED_CRITERIA, US_EV_SURVEY } from '@/data/mock-ir-ai';
-import {
-  addProjectToUniqueResponseGroup,
-  type UniqueResponseGroup,
-} from '@/data/mock-unique-responses';
+import type { UniqueResponseProjectOption } from '@/data/mock-unique-responses';
 
 const WuButton = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuButton })),
@@ -111,7 +123,7 @@ function SectionHeading({ children }: { children: ReactNode }) {
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {
-  return <span className="mb-1.5 block text-xs font-medium text-[#54606b]">{children}</span>;
+  return <span className="text-xs font-medium text-[#54606b]">{children}</span>;
 }
 
 function nearestPreset(value: number): number {
@@ -156,10 +168,22 @@ function ResponsesSlider({
   );
 }
 
-export function CreateProjectForm() {
+function parseDueDate(label: string): Date | undefined {
+  const parsed = new Date(label);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+export function CreateProjectForm({
+  topUpSource,
+  topUpCountryCode,
+}: {
+  topUpSource?: AudienceProjectDetail;
+  topUpCountryCode?: string;
+}) {
   const router = useRouter();
   const { showToast } = useWuShowToast();
   const audienceSectionRef = useRef<HTMLDivElement>(null);
+  const isTopUp = Boolean(topUpSource);
 
   const [projectName, setProjectName] = useState('');
   const [selectedSurvey, setSelectedSurvey] = useState<SurveyOption>(DEFAULT_SURVEY);
@@ -171,12 +195,15 @@ export function CreateProjectForm() {
   const [incidenceRateFromAi, setIncidenceRateFromAi] = useState(false);
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date('2026-08-05'));
   const [surveyLength, setSurveyLength] = useState(10);
-  const [uniqueResponseGroup, setUniqueResponseGroup] = useState<UniqueResponseGroup | null>(null);
+  const [uniqueResponseProjects, setUniqueResponseProjects] = useState<UniqueResponseProjectOption[]>([]);
   const [templatesByCountry, setTemplatesByCountry] = useState<Record<string, string | null>>({
     [DEFAULT_COUNTRY.value]: 'def-1',
   });
   const [isIrModalOpen, setIsIrModalOpen] = useState(false);
   const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
+  const [demographics, setDemographics] = useState<AudienceProjectDemographics>(DEFAULT_DEMOGRAPHICS);
+  const [genderQuotas, setGenderQuotas] = useState<Record<string, number>>({});
+  const [hydratedTopUpId, setHydratedTopUpId] = useState<string | null>(null);
 
   const estimate = useMemo(() => {
     const base = calculateEstimate(responses, incidenceRate, surveyLength);
@@ -191,6 +218,60 @@ export function CreateProjectForm() {
       totalCost: Number(totalCost.toFixed(2)),
     };
   }, [responses, incidenceRate, surveyLength, selectedCountries]);
+
+  useEffect(() => {
+    const hydrateKey = topUpSource
+      ? `${topUpSource.id}:${topUpCountryCode ?? ''}`
+      : null;
+    if (!topUpSource || hydratedTopUpId === hydrateKey) return;
+
+    setProjectName(nextTopUpProjectName(topUpSource.name, topUpCountryCode));
+    setIncidenceRate(topUpSource.incidenceRate);
+    setSurveyLength(topUpSource.surveyLengthMinutes);
+    setCompletionDate(parseDueDate(topUpSource.dueDate) ?? new Date('2026-08-05'));
+    setUniqueResponseProjects(
+      (topUpSource.uniqueResponseProjects ?? []).map((project) => ({
+        value: project.id,
+        label: project.name,
+        status: 'Closed',
+      })),
+    );
+
+    if (isMultiCountryProject(topUpSource)) {
+      const country =
+        (topUpCountryCode ? getCountryByCode(topUpCountryCode) : undefined) ??
+        getCountryByCode(topUpSource.countries[0]?.countryCode) ??
+        DEFAULT_COUNTRY;
+      setSelectedCountries([country]);
+      setActiveCountryCode(country.value);
+      setTemplatesByCountry({ [country.value]: 'def-1' });
+      setResponses(
+        defaultTopUpQuantity(
+          countryOriginalRequired(topUpSource, country.value),
+          topUpSource.reconciledResponses ?? 0,
+        ),
+      );
+      setDemographics(demographicsFromGlobalCriteria(topUpSource.globalCriteria));
+      setGenderQuotas({});
+    } else {
+      const sourceCountry =
+        MULTI_COUNTRY_CATALOG.find((country) => country.label === topUpSource.country) ??
+        DEFAULT_COUNTRY;
+      setSelectedCountries([sourceCountry]);
+      setActiveCountryCode(sourceCountry.value);
+      setTemplatesByCountry({ [sourceCountry.value]: 'def-1' });
+      setResponses(
+        defaultTopUpQuantity(
+          topUpSource.originalRequiredResponses ?? topUpSource.responses,
+          topUpSource.reconciledResponses ?? 0,
+        ),
+      );
+      setDemographics(topUpSource.demographics);
+      setGenderQuotas(topUpSource.genderQuotas ?? {});
+    }
+
+    setHydratedTopUpId(hydrateKey);
+  }, [topUpSource, topUpCountryCode, hydratedTopUpId]);
 
   const totalResponses = responses * selectedCountries.length;
 
@@ -225,9 +306,8 @@ export function CreateProjectForm() {
   );
 
   function handleResponsesChange(value: number) {
-    setResponses(
-      nearestPreset(Math.max(RESPONSE_PRESETS[0], Math.min(RESPONSE_PRESETS.at(-1)!, value))),
-    );
+    const clamped = Math.max(1, Math.min(RESPONSE_PRESETS.at(-1)!, Math.round(value) || 1));
+    setResponses(isTopUp ? clamped : nearestPreset(Math.max(RESPONSE_PRESETS[0], clamped)));
   }
 
   function handleCountrySelectionChange(codes: string[]) {
@@ -322,11 +402,81 @@ export function CreateProjectForm() {
     [selectedCountries, templatesByCountry],
   );
 
-  const appliedCriteria = hasAudienceCriteria ? US_APPLIED_CRITERIA : [];
+  const appliedCriteria = isTopUp
+    ? [
+        { id: 'gender', label: demographics.gender.join(' / ') || 'Gender' },
+        { id: 'age', label: demographics.ageGroups.join(', ') || 'Age groups' },
+      ]
+    : hasAudienceCriteria
+      ? US_APPLIED_CRITERIA
+      : [];
 
   function handleCreateProject() {
     if (selectedCountries.length === 0) {
       showToast({ message: 'Select at least one country', variant: 'error' });
+      return;
+    }
+
+    if (topUpSource) {
+      if (demographics.gender.length === 0) {
+        showToast({ message: 'Select at least one gender', variant: 'error' });
+        return;
+      }
+      const quotaTotal = Object.values(genderQuotas).reduce((sum, qty) => sum + qty, 0);
+      if (quotaTotal > responses) {
+        showToast({
+          message: 'Balancing quotas cannot exceed the number of responses',
+          variant: 'error',
+        });
+        return;
+      }
+
+      if (isMultiCountryProject(topUpSource)) {
+        const country = selectedCountries[0];
+        const parent = attachMultiCountryTopUp(topUpSource, {
+          name: projectName,
+          countryCode: country.value,
+          responses,
+          incidenceRate,
+          surveyLengthMinutes: surveyLength,
+          demographics,
+        });
+        markAudienceProjectLaunched();
+        showToast({
+          message: `Top-up launched — collecting ${responses.toLocaleString()} additional responses in ${country.label}.`,
+          variant: 'success',
+        });
+        router.push(`/projects/${parent.id}?country=${country.value}`);
+        return;
+      }
+
+      const sourceCountry = selectedCountries[0];
+      const child = buildAudienceProjectDetail({
+        name: projectName,
+        country: sourceCountry,
+        responses,
+        incidenceRate,
+        surveyLengthMinutes: surveyLength,
+        completionDate,
+        demographics,
+        genderQuotas: Object.keys(genderQuotas).length > 0 ? genderQuotas : undefined,
+        uniqueResponseProjects: uniqueResponseProjects.map((item) => ({
+          id: item.value,
+          name: item.label,
+        })),
+        status: 'Live',
+      });
+      const { parent } = attachTopUpChild(topUpSource, {
+        ...child,
+        costPerInterview: sourceCountry.cpi,
+        totalCost: Number((sourceCountry.cpi * responses).toFixed(2)),
+      });
+      markAudienceProjectLaunched();
+      showToast({
+        message: `Top-up launched — collecting ${responses.toLocaleString()} additional responses.`,
+        variant: 'success',
+      });
+      router.push(`/projects/${parent.id}`);
       return;
     }
 
@@ -348,14 +498,13 @@ export function CreateProjectForm() {
       incidenceRate,
       surveyLengthMinutes: surveyLength,
       completionDate,
-      uniqueResponseGroupId: uniqueResponseGroup?.id,
-      uniqueResponseGroupName: uniqueResponseGroup?.name,
+      uniqueResponseProjects: uniqueResponseProjects.map((project) => ({
+        id: project.value,
+        name: project.label,
+      })),
     });
 
     saveMultiCountryProject(project);
-    if (uniqueResponseGroup) {
-      addProjectToUniqueResponseGroup(uniqueResponseGroup.id, project.id);
-    }
     markAudienceProjectLaunched();
     showToast({ message: 'Audience project created', variant: 'success' });
     router.push(`/projects/${project.id}`);
@@ -422,6 +571,11 @@ export function CreateProjectForm() {
               {/* Source */}
               <section className="space-y-3">
                 <SectionHeading>Source</SectionHeading>
+                {isTopUp && selectedCountries.length === 1 && (
+                  <p className="text-xs text-[#8c9baa]">
+                    Targeting edits apply to {selectedCountries[0].label} only.
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-4">
                   <div className="w-full sm:w-52">
                     <WuSelect
@@ -440,6 +594,7 @@ export function CreateProjectForm() {
                       maxContentWidth="13rem"
                       selectAll={{ enable: true }}
                       CustomTrigger={countrySelectTrigger}
+                      disabled={isTopUp}
                     />
                   </div>
                   <div className="w-full sm:w-52">
@@ -452,17 +607,24 @@ export function CreateProjectForm() {
                       variant="outlined"
                       className="w-full"
                       maxContentWidth="13rem"
+                      disabled={isTopUp}
                     />
                   </div>
                   <div className="w-full sm:w-52">
-                    <FieldLabel>Survey</FieldLabel>
+                    <div className="mb-1.5">
+                      <FieldLabel>Survey</FieldLabel>
+                    </div>
                     <WuButton
                       variant="outlined"
                       color="primary"
                       className="w-full justify-start"
                       Icon={<span className="wm-add" aria-hidden="true" />}
                       iconPosition="left"
-                      onClick={() => setIsSurveyModalOpen(true)}
+                      disabled={isTopUp}
+                      onClick={() => {
+                        if (isTopUp) return;
+                        setIsSurveyModalOpen(true);
+                      }}
                     >
                       <span className="min-w-0 truncate">
                         {selectedSurvey.id === NO_SURVEY_OPTION.id
@@ -470,6 +632,11 @@ export function CreateProjectForm() {
                           : selectedSurvey.name}
                       </span>
                     </WuButton>
+                    {isTopUp && (
+                      <p className="mt-1 text-xs text-[#8c9baa]">
+                        Survey cannot be changed for a top-up.
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -498,9 +665,9 @@ export function CreateProjectForm() {
               {/* Fielding parameters */}
               <section className="space-y-3">
                 <SectionHeading>What are the key parameters for survey fielding?</SectionHeading>
-                <div className="flex flex-wrap items-start gap-4">
-                  <div className="shrink-0">
-                    <div className="mb-1.5 flex items-center gap-1.5">
+                <div className="survey-fielding-fields">
+                  <div className="survey-fielding-col survey-fielding-col--auto">
+                    <div className="survey-fielding-label">
                       <span className="text-xs font-medium text-[#54606b]">Incidence rate</span>
                       <WuTooltip content="Expected percentage of panelists who qualify for your survey">
                         <span
@@ -509,7 +676,7 @@ export function CreateProjectForm() {
                         />
                       </WuTooltip>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="survey-fielding-control gap-2.5">
                       <WuStepper
                         min={1}
                         max={100}
@@ -529,21 +696,26 @@ export function CreateProjectForm() {
                     </div>
                   </div>
 
-                  <div className="w-[10.5rem] shrink-0">
-                    <WuDatePicker
-                      Label="Completion date"
-                      labelPosition="top"
-                      variant="outlined"
-                      value={completionDate}
-                      onChange={setCompletionDate}
-                      minDate={new Date()}
-                      className="w-full"
-                    />
+                  <div className="survey-fielding-col survey-fielding-col--fixed">
+                    <div className="survey-fielding-label">
+                      <FieldLabel>Completion date</FieldLabel>
+                    </div>
+                    <div className="survey-fielding-control">
+                      <WuDatePicker
+                        variant="outlined"
+                        value={completionDate}
+                        onChange={setCompletionDate}
+                        minDate={new Date()}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
 
-                  <div className="shrink-0">
-                    <FieldLabel>Survey length</FieldLabel>
-                    <div className="flex items-end gap-2">
+                  <div className="survey-fielding-col survey-fielding-col--auto">
+                    <div className="survey-fielding-label">
+                      <FieldLabel>Survey length</FieldLabel>
+                    </div>
+                    <div className="survey-fielding-control gap-2">
                       <WuStepper
                         min={1}
                         max={60}
@@ -552,14 +724,14 @@ export function CreateProjectForm() {
                         onChange={setSurveyLength}
                         aria-label="Survey length in minutes"
                       />
-                      <span className="pb-2 text-sm text-[#8c9baa]">min</span>
+                      <span className="text-sm text-[#8c9baa]">min</span>
                     </div>
                   </div>
 
-                  <div className="max-w-full shrink-0">
+                  <div className="survey-fielding-col survey-fielding-col--fixed">
                     <UniqueResponsesField
-                      value={uniqueResponseGroup}
-                      onChange={setUniqueResponseGroup}
+                      value={uniqueResponseProjects}
+                      onChange={setUniqueResponseProjects}
                     />
                   </div>
                 </div>
@@ -571,24 +743,37 @@ export function CreateProjectForm() {
           <div ref={audienceSectionRef}>
           <WuCard rounded className="overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
             <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
-              <SectionHeading>Select your audience</SectionHeading>
-              <WuButton
-                variant="outlined"
-                color="primary"
-                Icon={<span className="wm-add" aria-hidden="true" />}
-                iconPosition="left"
-                onClick={() =>
-                  showToast({
-                    message: 'Custom audience builder coming soon',
-                    variant: 'success',
-                  })
-                }
-              >
-                Custom audience
-              </WuButton>
+              <SectionHeading>
+                {isTopUp ? 'Edit targeting criteria' : 'Select your audience'}
+              </SectionHeading>
+              {!isTopUp && (
+                <WuButton
+                  variant="outlined"
+                  color="primary"
+                  Icon={<span className="wm-add" aria-hidden="true" />}
+                  iconPosition="left"
+                  onClick={() =>
+                    showToast({
+                      message: 'Custom audience builder coming soon',
+                      variant: 'success',
+                    })
+                  }
+                >
+                  Custom audience
+                </WuButton>
+              )}
             </div>
 
-            {showCountryTabs ? (
+            {isTopUp ? (
+              <div className="p-5 pt-4 sm:p-6 sm:pt-4">
+                <TopUpCriteriaEditor
+                  value={demographics}
+                  onChange={setDemographics}
+                  genderQuotas={genderQuotas}
+                  onGenderQuotasChange={setGenderQuotas}
+                />
+              </div>
+            ) : showCountryTabs ? (
               <WuTab
                 items={countryTabItems}
                 value={activeCountryCode}
@@ -612,6 +797,7 @@ export function CreateProjectForm() {
             onCreateProject={handleCreateProject}
             countryCount={selectedCountries.length}
             countryBreakdown={countryBreakdown}
+            actionLabel={isTopUp ? 'Launch' : 'Create project'}
           />
         </div>
       </div>
@@ -622,7 +808,7 @@ export function CreateProjectForm() {
         survey={selectedSurvey}
         onSurveyChange={setSelectedSurvey}
         appliedCriteria={appliedCriteria}
-        hasCriteriaAdded={hasAudienceCriteria}
+        hasCriteriaAdded={isTopUp || hasAudienceCriteria}
         onEditCriteria={() => {
           scrollToAudienceSection();
           showToast({ message: 'Update audience criteria below', variant: 'success' });
