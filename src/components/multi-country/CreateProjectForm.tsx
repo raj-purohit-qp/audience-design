@@ -50,6 +50,13 @@ import {
   type AudienceProjectDetail,
 } from '@/data/audience-project-store';
 import { defaultTopUpQuantity } from '@/data/mock-audience-projects';
+import {
+  clearCreateWithAi,
+  formatAiDate,
+  parseAiDate,
+  type AiAnalysisResult,
+  type AiCriterion,
+} from '@/data/create-with-ai';
 import { markAudienceProjectLaunched } from '@/data/mock-home';
 import { US_APPLIED_CRITERIA, US_EV_SURVEY } from '@/data/mock-ir-ai';
 import type { UniqueResponseProjectOption } from '@/data/mock-unique-responses';
@@ -176,9 +183,11 @@ function parseDueDate(label: string): Date | undefined {
 export function CreateProjectForm({
   topUpSource,
   topUpCountryCode,
+  aiDraft,
 }: {
   topUpSource?: AudienceProjectDetail;
   topUpCountryCode?: string;
+  aiDraft?: AiAnalysisResult;
 }) {
   const router = useRouter();
   const { showToast } = useWuShowToast();
@@ -204,6 +213,12 @@ export function CreateProjectForm({
   const [demographics, setDemographics] = useState<AudienceProjectDemographics>(DEFAULT_DEMOGRAPHICS);
   const [genderQuotas, setGenderQuotas] = useState<Record<string, number>>({});
   const [hydratedTopUpId, setHydratedTopUpId] = useState<string | null>(null);
+  const [aiCriteria, setAiCriteria] = useState<AiCriterion[]>(aiDraft?.criteria ?? []);
+  const [creating, setCreating] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
+  const createDelayDone = useRef(false);
+  const hydratedAi = useRef(false);
 
   const estimate = useMemo(() => {
     const base = calculateEstimate(responses, incidenceRate, surveyLength);
@@ -218,6 +233,28 @@ export function CreateProjectForm({
       totalCost: Number(totalCost.toFixed(2)),
     };
   }, [responses, incidenceRate, surveyLength, selectedCountries]);
+
+  useEffect(() => {
+    if (!aiDraft || hydratedAi.current) return;
+    hydratedAi.current = true;
+    const survey = MOCK_SURVEYS.find((item) => item.id === aiDraft.surveyId) ?? DEFAULT_SURVEY;
+    const countries = aiDraft.countryCodes
+      .map((code) => getCountryByCode(code))
+      .filter((country): country is CountryDefinition => Boolean(country));
+    setSelectedSurvey(survey);
+    setResponses(aiDraft.fieldResponses);
+    setIncidenceRate(aiDraft.incidenceRate);
+    setSurveyLength(aiDraft.surveyLength);
+    setCompletionDate(parseAiDate(aiDraft.dueDate));
+    setAiCriteria(aiDraft.criteria);
+    if (countries.length > 0) {
+      setSelectedCountries(countries);
+      setActiveCountryCode(countries[0].value);
+      setTemplatesByCountry(
+        Object.fromEntries(countries.map((country) => [country.value, aiDraft.templateId])),
+      );
+    }
+  }, [aiDraft]);
 
   useEffect(() => {
     const hydrateKey = topUpSource
@@ -357,8 +394,38 @@ export function CreateProjectForm({
 
   function renderAudienceTemplates(country: CountryDefinition) {
     const templateId = templatesByCountry[country.value] ?? null;
+    const countryCriteria = aiCriteria.filter(
+      (criterion) => criterion.countryCodes.length === 0 || criterion.countryCodes.includes(country.value),
+    );
     return (
       <>
+        {countryCriteria.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-[#8c9baa]">Selected by AI</p>
+            <div className="flex flex-wrap gap-2">
+              {countryCriteria.map((criterion) => (
+                <span key={criterion.id} className="inline-flex flex-col gap-1">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#c5ddf6] bg-[#f3f9fe] px-2.5 py-1 text-xs text-[#1a2340]">
+                    <span className="font-medium">{criterion.name}:</span> {criterion.value}
+                    <button
+                      type="button"
+                      className="ml-1 text-[#8c9baa] hover:text-[#1a2340]"
+                      aria-label={`Remove ${criterion.name}`}
+                      onClick={() => setAiCriteria((current) => current.filter((item) => item.id !== criterion.id))}
+                    >
+                      ×
+                    </button>
+                  </span>
+                  {criterion.approximate && criterion.approximationNote ? (
+                    <span className="max-w-xs text-[11px] leading-relaxed text-[#b06000]">
+                      Closest match. {criterion.approximationNote}
+                    </span>
+                  ) : null}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div>
           <p className="mb-2 text-xs font-medium text-[#8c9baa]">My templates</p>
           <div className="flex gap-3 overflow-x-auto pb-1">
@@ -412,6 +479,29 @@ export function CreateProjectForm({
       : [];
 
   function handleCreateProject() {
+    if (aiDraft && !projectName.trim()) {
+      setNameError(true);
+      showToast({ message: 'Enter a project name before creating the project.', variant: 'error' });
+      return;
+    }
+    if (aiDraft && typeof navigator !== 'undefined' && !navigator.onLine) {
+      setCreationError(
+        "Couldn't create the project. Check your connection and try again. Your project name and AI configuration are still here.",
+      );
+      return;
+    }
+    if (aiDraft && !createDelayDone.current) {
+      setCreationError(null);
+      setCreating(true);
+      window.setTimeout(() => {
+        createDelayDone.current = true;
+        setCreating(false);
+        handleCreateProject();
+        createDelayDone.current = false;
+      }, 600);
+      return;
+    }
+
     if (selectedCountries.length === 0) {
       showToast({ message: 'Select at least one country', variant: 'error' });
       return;
@@ -506,6 +596,7 @@ export function CreateProjectForm({
 
     saveMultiCountryProject(project);
     markAudienceProjectLaunched();
+    if (aiDraft) clearCreateWithAi();
     showToast({ message: 'Audience project created', variant: 'success' });
     router.push(`/projects/${project.id}`);
   }
@@ -549,6 +640,44 @@ export function CreateProjectForm({
     <div className="flex min-h-full flex-col bg-white">
       <div className="flex flex-1 flex-col gap-6 px-6 py-5 lg:flex-row lg:items-start lg:gap-8">
         <div className="min-w-0 flex-1 space-y-5">
+          {aiDraft && (
+            <div className="rounded-lg border border-[#d3e4f5] bg-[#f7fbfe] px-4 py-3">
+              <p className="text-sm font-medium text-[#1a2340]">Prepared with AI</p>
+              <p className="mt-1 text-sm text-[#54606b]">
+                {aiDraft.surveyName} · {aiDraft.responses.toLocaleString()} requested responses ·{' '}
+                {aiDraft.countryCodes.length} {aiDraft.countryCodes.length === 1 ? 'country' : 'countries'} ·{' '}
+                {formatAiDate(aiDraft.dueDate)}
+              </p>
+              {aiDraft.responses !== aiDraft.fieldResponses && (
+                <p className="mt-1 text-xs text-[#54606b]">
+                  The response field uses the nearest fielding option, {aiDraft.fieldResponses.toLocaleString()}.
+                </p>
+              )}
+              <p className="mt-1 text-xs text-[#54606b]">{aiDraft.balancingSummary}</p>
+              <ul className="mt-2 space-y-1">
+                {aiDraft.countries.map((country) => (
+                  <li key={country.countryCode} className="text-xs text-[#1a2340]">
+                    <span className="font-medium">
+                      {country.flag} {country.label}:
+                    </span>{' '}
+                    {country.achievable.toLocaleString()} of {country.requested.toLocaleString()} by the due date.
+                    {country.status !== 'feasible' ? ` ${country.note}` : ''}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-[#8c9baa]">
+                Feasibility is a prototype estimate, not a live supply check. The due date was not changed.
+              </p>
+              {nameError && !projectName.trim() && (
+                <p className="mt-2 text-xs text-[#d93025]">Enter a project name to create this project.</p>
+              )}
+              {creationError && (
+                <p className="mt-2 text-xs text-[#d93025]" role="alert">
+                  {creationError}
+                </p>
+              )}
+            </div>
+          )}
           <WuCard rounded className="overflow-hidden border border-[#e0e4e8] p-0 shadow-none">
             <div className="space-y-8 p-5 sm:p-6">
               <div className="space-y-1">
@@ -706,7 +835,14 @@ export function CreateProjectForm({
                         value={completionDate}
                         onChange={setCompletionDate}
                         minDate={new Date()}
+                        required
                         className="w-full"
+                        slotProps={{
+                          positioner: {
+                            className: 'z-[80]',
+                            style: { zIndex: 80, pointerEvents: 'auto' },
+                          },
+                        }}
                       />
                     </div>
                   </div>
@@ -798,6 +934,26 @@ export function CreateProjectForm({
             countryCount={selectedCountries.length}
             countryBreakdown={countryBreakdown}
             actionLabel={isTopUp ? 'Launch' : 'Create project'}
+            actionLoading={creating}
+            feasibilityMessage={
+              aiDraft
+                ? aiDraft.feasibility === 'feasible'
+                  ? 'Your sample is feasible.'
+                  : aiDraft.feasibility === 'partial'
+                    ? 'Feasibility is partial.'
+                    : 'Not deliverable by the due date.'
+                : undefined
+            }
+            feasibilityColor={
+              aiDraft
+                ? aiDraft.feasibility === 'feasible'
+                  ? 'success'
+                  : aiDraft.feasibility === 'partial'
+                    ? 'warning'
+                    : 'danger'
+                : undefined
+            }
+            feasibilityDetail={aiDraft?.feasibilitySummary}
           />
         </div>
       </div>

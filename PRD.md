@@ -61,7 +61,7 @@ Home has two states:
 **Nav label:** Specialized sample (Audience group in sidebar)
 **Page heading:** Specialized sample
 **Purpose:** List and manage Specialized sample projects (formerly labeled Projects).
-**Layout:** Page header with **Create project**; search; projects table with status, progress, cost columns, and row actions.
+**Layout:** Page header with **Create project** (secondary, AI icon) and **Create project** (primary, plus icon); search; projects table with status, progress, cost columns, and row actions.
 
 ### Organization panel settings
 
@@ -221,6 +221,30 @@ Drawer sections, in order:
 | Read | View projects, details, monitoring, and reports in a workspace — no edits |
 | Read & write | View and edit projects in a workspace. Project ownership does not change |
 | Unique responses | Create-project field for selecting previously launched projects whose respondents cannot take this project |
+
+---
+
+## Create project
+
+**Availability:** Specialized sample, when the user can create projects.
+**Purpose:** Prepare an Audience project from four inputs. AI suggests criteria, balancing, and feasibility. The project is created only after the user reviews that setup and clicks **Create project**.
+
+**Entry:** **Create project** with the plus icon is the primary action and opens the traditional create form. **Create project** with the AI icon is secondary, to its left, and opens the AI-assisted create flow.
+
+**Steps**
+1. **Inputs** — Number of Responses, Target Countries, and Completion date on one row. **Select survey** stays disabled until those three are valid.
+2. **Survey** — the existing Select survey modal. Published surveys only. **Create project** starts analysis.
+3. **Create project** — the same step modal pattern as Check IR with AI: a short checklist of Analyzing Survey, Matching Audience Criteria, Configuring Audience and Balancing, and Checking Feasibility. **Minimize** collapses the window into a floating status that does not cancel the run. Reopening restores the current stage. A refresh resumes the same run in this browser. When analysis succeeds, the user is taken to Create project with the applied settings. Failed and no-criteria results stay in this modal. The Select survey modal uses the same stepper footer as the other steps.
+
+**Review:** Create project opens with the survey, response count (nearest fielding preset), countries, due date, template, and feasibility already filled in. Criteria can be removed. Approximations are labeled. The project name is still required. **Create project** is the only action that creates the project.
+
+**Prototype outcomes**
+- Mobile App Onboarding Feedback — analysis fails at matching. Retry keeps the four inputs.
+- Employee Engagement Pulse Survey — no reliable criteria. Nothing is applied.
+- A due date within 7 days and 500 or more responses — configuration is kept, feasibility is not by the due date.
+- Global Brand Health Check with more than one country — the last country is limited.
+- Retail NPS Pulse — balancing is not added.
+- Healthcare Benefits in Germany — household income is marked as the closest match.
 
 ---
 

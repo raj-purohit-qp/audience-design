@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { CreateWithAiStepFooter } from '@/components/create-with-ai/CreateWithAiStepFooter';
 import {
   MOCK_SURVEYS,
   NO_SURVEY_OPTION,
@@ -16,6 +17,14 @@ interface SelectSurveyModalProps {
   onOpenChange: (open: boolean) => void;
   selectedSurveyId: string;
   onSelect: (survey: SurveyOption) => void;
+  /** When set, only these surveys appear. Used by Create project AI for published surveys. */
+  allowedSurveyIds?: string[];
+  /** Hides the “No survey” choice. */
+  hideNoSurvey?: boolean;
+  /** Primary footer action. Defaults to Select. */
+  confirmLabel?: string;
+  /** Shows the Create project stepper in the footer. */
+  showWizardFooter?: boolean;
 }
 
 const SelectSurveyModalInner = dynamic(
@@ -41,15 +50,21 @@ const SelectSurveyModalInner = dynamic(
         onOpenChange,
         selectedSurveyId,
         onSelect,
+        allowedSurveyIds,
+        hideNoSurvey = false,
+        confirmLabel = 'Select',
+        showWizardFooter = false,
       }: SelectSurveyModalProps) {
         const [folder, setFolder] = useState<SurveyFolderOption>(SURVEY_FOLDERS[0]);
         const [search, setSearch] = useState('');
         const [pendingId, setPendingId] = useState(selectedSurveyId);
 
-        const surveys = useMemo(
-          () => getSurveysForFolder(folder.value, search),
-          [folder.value, search],
-        );
+        const surveys = useMemo(() => {
+          const list = getSurveysForFolder(folder.value, search);
+          if (!allowedSurveyIds) return list;
+          const allowed = new Set(allowedSurveyIds);
+          return list.filter((survey) => allowed.has(survey.id));
+        }, [folder.value, search, allowedSurveyIds]);
 
         function handleOpenChange(next: boolean) {
           if (next) {
@@ -60,7 +75,13 @@ const SelectSurveyModalInner = dynamic(
           onOpenChange(next);
         }
 
+        const selectionAllowed =
+          pendingId !== NO_SURVEY_OPTION.id &&
+          (!allowedSurveyIds || allowedSurveyIds.includes(pendingId));
+        const canConfirm = hideNoSurvey ? selectionAllowed : pendingId === NO_SURVEY_OPTION.id || selectionAllowed;
+
         function handleConfirm() {
+          if (!canConfirm) return;
           if (pendingId === NO_SURVEY_OPTION.id) {
             onSelect(NO_SURVEY_OPTION);
           } else {
@@ -71,8 +92,13 @@ const SelectSurveyModalInner = dynamic(
         }
 
         return (
-          <WuModal open={open} onOpenChange={handleOpenChange} size="lg">
-            <WuModalHeader>Select survey</WuModalHeader>
+          <WuModal
+            open={open}
+            onOpenChange={handleOpenChange}
+            size="lg"
+            maxWidth={showWizardFooter ? '840px' : undefined}
+          >
+            <WuModalHeader>{showWizardFooter ? 'Create project' : 'Select survey'}</WuModalHeader>
             <WuModalContent>
               <div className="space-y-4">
                 <WuInput
@@ -139,25 +165,39 @@ const SelectSurveyModalInner = dynamic(
                   </div>
                 </WuSurveySelect>
 
-                <button
-                  type="button"
-                  className={`w-full rounded-md border px-3 py-2.5 text-left text-sm transition-colors ${
-                    pendingId === NO_SURVEY_OPTION.id
-                      ? 'border-[#1b87e6] bg-[#e8f0fe] text-[#1a2340]'
-                      : 'border-[#e0e4e8] text-[#54606b] hover:border-[#1b87e6]'
-                  }`}
-                  onClick={() => setPendingId(NO_SURVEY_OPTION.id)}
-                >
-                  {NO_SURVEY_OPTION.name}
-                </button>
+                {!hideNoSurvey && (
+                  <button
+                    type="button"
+                    className={`w-full rounded-md border px-3 py-2.5 text-left text-sm transition-colors ${
+                      pendingId === NO_SURVEY_OPTION.id
+                        ? 'border-[#1b87e6] bg-[#e8f0fe] text-[#1a2340]'
+                        : 'border-[#e0e4e8] text-[#54606b] hover:border-[#1b87e6]'
+                    }`}
+                    onClick={() => setPendingId(NO_SURVEY_OPTION.id)}
+                  >
+                    {NO_SURVEY_OPTION.name}
+                  </button>
+                )}
               </div>
             </WuModalContent>
-            <WuModalFooter>
-              <WuModalClose variant="secondary">Cancel</WuModalClose>
-              <WuButton color="primary" onClick={handleConfirm}>
-                Select
-              </WuButton>
-            </WuModalFooter>
+            {showWizardFooter ? (
+              <WuModalFooter className="block overflow-hidden rounded-b-[inherit] p-0">
+                <CreateWithAiStepFooter
+                  current={2}
+                  onBack={() => handleOpenChange(false)}
+                  primaryLabel={confirmLabel}
+                  onPrimary={handleConfirm}
+                  primaryDisabled={!canConfirm}
+                />
+              </WuModalFooter>
+            ) : (
+              <WuModalFooter>
+                <WuModalClose variant="secondary">Cancel</WuModalClose>
+                <WuButton color="primary" onClick={handleConfirm} disabled={!canConfirm}>
+                  {confirmLabel}
+                </WuButton>
+              </WuModalFooter>
+            )}
           </WuModal>
         );
       };

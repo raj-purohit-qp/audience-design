@@ -29,6 +29,44 @@
   padding-inline: 10px;
 }
 
+/* Create project — step 1 fields fill the modal on one row */
+.ai-create-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: start;
+  width: 100%;
+  column-gap: 2rem;
+}
+
+.ai-create-responses [data-slot='wu-input-group'] {
+  width: 5.75rem;
+  height: 2rem;
+}
+
+.ai-create-responses input {
+  box-sizing: border-box;
+  width: 5.75rem !important;
+  height: 2rem !important;
+  min-height: 2rem;
+  max-width: 5.75rem;
+  padding-inline: 8px;
+}
+
+.ai-create-country,
+.ai-create-date {
+  min-width: 0;
+}
+
+.ai-create-country .survey-fielding-control > *,
+.ai-create-country .wu-select-container {
+  width: 100%;
+}
+
+.ai-create-date .wuField,
+.ai-create-date [data-slot='wu-date-picker-trigger'] {
+  width: 100%;
+}
+
 .audience-no-spinner input[type='number']::-webkit-outer-spin-button,
 .audience-no-spinner input[type='number']::-webkit-inner-spin-button,
 input.audience-no-spinner[type='number']::-webkit-outer-spin-button,
@@ -80,6 +118,13 @@ input.audience-no-spinner[type='number'] {
   align-items: center;
   width: 100%;
   min-height: 2rem;
+  overflow: visible;
+}
+
+/* WuDatePicker popover is portaled; keep it above WuModal and clickable */
+[class*='_pickerPositioner_'] {
+  z-index: 80 !important;
+  pointer-events: auto !important;
 }
 
 .survey-fielding-control .wu-select-container {
@@ -218,7 +263,7 @@ input.audience-no-spinner[type='number'] {
   overflow: visible;
 }
 
-/* QuestionPro AI icon — default 18×18px glyph inside 16×16 button icon slot */
+/* QuestionPro AI icon — sparkle with lower-right dot */
 .ir-ai-icon {
   vertical-align: middle;
 }

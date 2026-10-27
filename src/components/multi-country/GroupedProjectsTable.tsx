@@ -20,6 +20,8 @@ import { PushProjectModal } from '@/components/projects/PushProjectModal';
 import { TopUpModal } from '@/components/projects/TopUpModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { AiIcon } from '@/components/projects/AiIcon';
+import { openCreateWithAi } from '@/data/create-with-ai';
 import { useWorkspaceSession } from '@/components/workspace/useWorkspaceSession';
 import { isLaunchedStatus, markAudienceProjectLaunched } from '@/data/mock-home';
 import {
@@ -925,9 +927,23 @@ export function GroupedProjectsTable() {
               </WuChip>
             ) : null}
             {canCreate ? (
-              <WuButton onClick={() => router.push('/projects/create')}>
-                <span className="wm-add" aria-hidden="true" /> Create project
-              </WuButton>
+              <>
+                <WuButton
+                  variant="secondary"
+                  Icon={<AiIcon />}
+                  iconPosition="left"
+                  aria-label="Create project with AI"
+                  onClick={() => openCreateWithAi()}
+                >
+                  Create project
+                </WuButton>
+                <WuButton
+                  aria-label="Create project"
+                  onClick={() => router.push('/projects/create')}
+                >
+                  <span className="wm-add" aria-hidden="true" /> Create project
+                </WuButton>
+              </>
             ) : null}
           </div>
         }
@@ -968,9 +984,23 @@ export function GroupedProjectsTable() {
             }
             action={
               isMine && canCreate && !searched ? (
-                <WuButton onClick={() => router.push('/projects/create')}>
-                  <span className="wm-add" aria-hidden="true" /> Create project
-                </WuButton>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <WuButton
+                    variant="secondary"
+                    Icon={<AiIcon />}
+                    iconPosition="left"
+                    aria-label="Create project with AI"
+                    onClick={() => openCreateWithAi()}
+                  >
+                    Create project
+                  </WuButton>
+                  <WuButton
+                    aria-label="Create project"
+                    onClick={() => router.push('/projects/create')}
+                  >
+                    <span className="wm-add" aria-hidden="true" /> Create project
+                  </WuButton>
+                </div>
               ) : undefined
             }
           />
