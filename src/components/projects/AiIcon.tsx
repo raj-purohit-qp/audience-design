@@ -4,8 +4,7 @@ import type { CSSProperties } from 'react';
 
 /**
  * QuestionPro AI icon — star sparkle with a dot on the lower-right.
- * @see Design System → QuestionPro AI (wc-ai equivalent)
- * @see https://docs.google.com/document/d/11D_VfWvd00Qh3yOqQzlbVSTtBXM1I1x10Cd7CVbP64Q/edit?tab=t.9qohj9uo73it
+ * @see Design System → QuestionPro AI
  */
 export function AiIcon({
   className,

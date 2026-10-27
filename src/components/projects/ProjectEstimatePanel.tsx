@@ -47,6 +47,10 @@ interface ProjectEstimatePanelProps {
   countryCount?: number;
   countryBreakdown?: CountryCostBreakdownRow[];
   actionLabel?: string;
+  feasibilityMessage?: string;
+  feasibilityColor?: 'success' | 'warning' | 'danger';
+  feasibilityDetail?: string;
+  actionLoading?: boolean;
 }
 
 export function ProjectEstimatePanel({
@@ -57,8 +61,14 @@ export function ProjectEstimatePanel({
   countryCount,
   countryBreakdown = [],
   actionLabel = 'Create project',
+  feasibilityMessage,
+  feasibilityColor,
+  feasibilityDetail,
+  actionLoading = false,
 }: ProjectEstimatePanelProps) {
   const isFeasible = estimate.feasibility === 'high';
+  const chipColor = feasibilityColor ?? (isFeasible ? 'success' : 'warning');
+  const chipLabel = feasibilityMessage ?? (isFeasible ? 'Your sample is feasible.' : 'Sample feasibility may be limited.');
   const isMultiCountry = (countryCount ?? countryBreakdown.length) > 1;
 
   const rows: { label: string; value: string }[] = isMultiCountry
@@ -169,12 +179,15 @@ export function ProjectEstimatePanel({
 
         <div className="px-5 pb-4">
           <div className="mb-4">
-            <WuChip size="sm" shape="rounded" color={isFeasible ? 'success' : 'warning'}>
-              {isFeasible ? 'Your sample is feasible.' : 'Sample feasibility may be limited.'}
+            <WuChip size="sm" shape="rounded" color={chipColor}>
+              {chipLabel}
             </WuChip>
+            {feasibilityDetail ? (
+              <p className="mt-2 text-xs leading-relaxed text-[#54606b]">{feasibilityDetail}</p>
+            ) : null}
           </div>
 
-          <WuButton className="w-full" color="primary" onClick={onCreateProject}>
+          <WuButton className="w-full" color="primary" onClick={onCreateProject} loading={actionLoading} disabled={actionLoading}>
             {actionLabel}
           </WuButton>
         </div>
