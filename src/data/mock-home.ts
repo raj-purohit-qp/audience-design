@@ -123,7 +123,7 @@ export const HOME_ENTRY_CARDS: HomeEntryCard[] = [
     accent: 'blue',
     icon: 'wm-group',
     actionLabel: 'Create project',
-    href: '/projects/create',
+    href: '/projects/create/guided',
     statLabel: '10 active projects',
   },
   {

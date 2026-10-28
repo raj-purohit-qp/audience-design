@@ -61,7 +61,7 @@ Home has two states:
 **Nav label:** Specialized sample (Audience group in sidebar)
 **Page heading:** Specialized sample
 **Purpose:** List and manage Specialized sample projects (formerly labeled Projects).
-**Layout:** Page header with **Create project** (secondary, AI icon) and **Create project** (primary, plus icon); search; projects table with status, progress, cost columns, and row actions.
+**Layout:** Page header with **Create project**; search; projects table with status, progress, cost columns, and row actions.
 
 ### Organization panel settings
 
@@ -229,12 +229,17 @@ Drawer sections, in order:
 **Availability:** Specialized sample, when the user can create projects.
 **Purpose:** Prepare an Audience project from four inputs. AI suggests criteria, balancing, and feasibility. The project is created only after the user reviews that setup and clicks **Create project**.
 
-**Entry:** **Create project** with the plus icon is the primary action and opens the traditional create form. **Create project** with the AI icon is secondary, to its left, and opens the AI-assisted create flow.
+**Entry:** **Create project** opens the research agent at `/projects/create/guided`. There is a single Create project button on Specialized sample and Home.
 
-**Steps**
-1. **Inputs** — Number of Responses, Target Countries, and Completion date on one row. **Select survey** stays disabled until those three are valid.
-2. **Survey** — the existing Select survey modal. Published surveys only. **Create project** starts analysis.
-3. **Create project** — the same step modal pattern as Check IR with AI: a short checklist of Analyzing Survey, Matching Audience Criteria, Configuring Audience and Balancing, and Checking Feasibility. **Minimize** collapses the window into a floating status that does not cancel the run. Reopening restores the current stage. A refresh resumes the same run in this browser. When analysis succeeds, the user is taken to Create project with the applied settings. Failed and no-criteria results stay in this modal. The Select survey modal uses the same stepper footer as the other steps.
+**Research agent** (`/projects/create/guided`)
+- Heading: **Create project**. No file attach.
+- Recent project cards sit below the chat. Choosing one expands the chat to the bottom, removes the card list, shows the selected project in the thread, and asks only for the survey.
+- The typing box has a **Send** icon. **Create** sits outside the typing box and starts analysis after the user confirms.
+- The agent asks, in order: How many responses you want to collect; Which countries you want to field the survey in; Which survey you want to field; What will be the due date.
+- The user can type an answer or pick a suggested option (Claude-style). Response count options are **50, 100, 200, 500, 1000, 2000, 5000**. Countries use a multi-select dropdown. Due date offers suggested dates and a date picker.
+- A previous answer can be edited from that message before analysis starts. After the four answers, the agent shows the shared details, asks if the user wants to share anything else, and waits for confirmation (**No, that's all** or **Create**).
+- **Skip guided creation** sits directly below the chat box, above the recent project cards, and opens the traditional form at `/projects/create`.
+- After the four answers, analysis runs in the chat (Analyzing Survey, Matching Audience Criteria, Configuring Audience and Balancing, Checking Feasibility). A refresh resumes a run that is still in progress.
 
 **Review:** Create project opens with the survey, response count (nearest fielding preset), countries, due date, template, and feasibility already filled in. Criteria can be removed. Approximations are labeled. The project name is still required. **Create project** is the only action that creates the project.
 

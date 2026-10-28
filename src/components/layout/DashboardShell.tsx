@@ -3,7 +3,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { CreateWithAiHost } from '@/components/create-with-ai/CreateWithAiHost';
 import { SideNav } from '@/components/SideNav';
 import { HeaderBreadcrumb } from '@/components/layout/HeaderBreadcrumb';
 import { resolveAudienceProject } from '@/data/audience-project-store';
@@ -38,6 +37,10 @@ function useProjectDetailBreadcrumb(): string | null {
     setProjectName(project.name);
   }, [pathname]);
 
+  if (pathname === '/projects/create' || pathname.startsWith('/projects/create/')) {
+    return 'Create project';
+  }
+
   return projectName;
 }
 
@@ -70,7 +73,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       <WuSidebar Sidebar={<SideNav />}>
         <main className="flex flex-1 flex-col bg-white">{children}</main>
       </WuSidebar>
-      <CreateWithAiHost />
     </div>
   );
 }
