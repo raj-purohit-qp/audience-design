@@ -234,7 +234,7 @@ export function CreateProjectAgent() {
   const canCreate = currentUser.projectCreation.specializedSample;
   const threadRef = useRef<HTMLDivElement>(null);
   const handedOff = useRef(false);
-  const navTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navTimer = useRef<number | null>(null);
   const [draft, setDraft] = useState<GuidedDraft>({});
   const [step, setStep] = useState<GuidedStep>('responses');
   const [messages, setMessages] = useState<AgentMessage[]>(openingMessages);
