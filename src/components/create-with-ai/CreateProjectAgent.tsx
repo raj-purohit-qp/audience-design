@@ -37,6 +37,7 @@ import {
   questionForStep,
   recentProjectTemplates,
   remainingGuidedStep,
+  requestMissingCopy,
   reviewDetails,
   toIsoDate,
   type GuidedDraft,
@@ -131,7 +132,6 @@ function openingMessages(): AgentMessage[] {
       role: 'agent',
       text: AGENT_COPY.greeting,
     },
-    questionMessage('responses'),
   ];
 }
 
@@ -237,7 +237,7 @@ export function CreateProjectAgent() {
   const handedOff = useRef(false);
   const navTimer = useRef<number | null>(null);
   const [draft, setDraft] = useState<GuidedDraft>({});
-  const [step, setStep] = useState<GuidedStep>('responses');
+  const [step, setStep] = useState<GuidedStep>('intake');
   const [messages, setMessages] = useState<AgentMessage[]>(openingMessages);
   const [input, setInput] = useState('');
   const [job, setJob] = useState<AiJob | null>(null);
@@ -245,7 +245,7 @@ export function CreateProjectAgent() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const busy = step === 'working' || step === 'done';
-  const showRecentCards = step === 'responses' && draft.responses == null && !busy;
+  const showRecentCards = step === 'intake' && !busy;
   const chatExpanded = !showRecentCards;
   const askStep: GuidedField | null =
     step === 'responses' || step === 'country' || step === 'survey' || step === 'dueDate' ? step : null;
@@ -384,12 +384,13 @@ export function CreateProjectAgent() {
   const stageIndex = job?.status === 'running' ? job.stageIndex : AI_STAGES.length;
 
   const placeholder = useMemo(() => {
+    if (step === 'intake' && !editingField) return AGENT_COPY.composerIntake;
     if (editingField === 'responses' || askStep === 'responses') return 'Type a number, or pick an option above';
     if (editingField === 'country' || askStep === 'country') return 'Type countries, or use the dropdown above';
     if (editingField === 'survey' || askStep === 'survey') return 'Type a survey name, or pick an option above';
     if (editingField === 'dueDate' || askStep === 'dueDate') return 'Type a date, pick a suggestion, or use the date picker';
     if (step === 'confirm') return 'Share anything else, or confirm to create the project';
-    return 'Describe what you’d like to do…';
+    return AGENT_COPY.composerIntake;
   }, [askStep, editingField, step]);
 
   function disableLastOptions(list: AgentMessage[]): AgentMessage[] {
@@ -463,7 +464,7 @@ export function CreateProjectAgent() {
     beginAnalysis(draft);
   }
 
-  function continueFromDraft(nextDraft: GuidedDraft, userText: string, field: GuidedField) {
+  function continueFromDraft(nextDraft: GuidedDraft, userText: string, field?: GuidedField) {
     const remaining = remainingGuidedStep(nextDraft);
     setDraft(nextDraft);
     setEditingId(null);
@@ -474,6 +475,9 @@ export function CreateProjectAgent() {
       ];
       if (remaining === 'ready') {
         return [...withUser, confirmMessage(nextDraft)];
+      }
+      if (!field) {
+        return [...withUser, { ...questionMessage(remaining), text: requestMissingCopy(nextDraft) }];
       }
       if (remaining === remainingGuidedStep(draft) && draftsEqual(nextDraft, draft)) {
         return [
@@ -629,9 +633,13 @@ export function CreateProjectAgent() {
       return;
     }
     const field = editingField ?? askStep;
-    if (!field) return;
+    if (!field && step !== 'intake') return;
     const nextDraft = applyGuidedText(draft, text, editingField ?? undefined);
     setInput('');
+    if (!field) {
+      continueFromDraft(nextDraft, text);
+      return;
+    }
     if (draftsEqual(nextDraft, draft)) {
       if (editingId) return;
       continueFromDraft(nextDraft, text, field);
@@ -749,11 +757,14 @@ export function CreateProjectAgent() {
         ← Back to Specialized sample
       </Link>
       <div className="create-agent-intro">
-        <WuHeading size="lg">Create project</WuHeading>
+        <div className="create-agent-title">
+          <AiIcon />
+          <WuHeading size="lg">Create project</WuHeading>
+        </div>
         <div className="mt-2 max-w-[36rem]">
           <WuSubtext size="sm">
-            Describe what you want to field. I will ask how many responses you need, which countries
-            to field in, which survey to use, and the due date.
+            Describe what you want to field. Share your requirements like number of responses,
+            country, due date and the survey.
           </WuSubtext>
         </div>
       </div>

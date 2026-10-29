@@ -232,11 +232,12 @@ Drawer sections, in order:
 **Entry:** **Create project** opens the research agent at `/projects/create/guided`. There is a single Create project button on Specialized sample and Home.
 
 **Research agent** (`/projects/create/guided`)
-- Heading: **Create project**. No file attach.
+- Heading: QuestionPro AI icon immediately before **Create project**. No file attach.
+- The chat opens without questions. The typing box placeholder is **Share your requirements like number of responses, country, due date and the survey.**
+- The user shares requirements in the typing box first. If any of responses, country, survey, or due date is missing, the agent asks for the missing details.
 - Recent project cards sit below the chat. Choosing one expands the chat to the bottom, removes the card list, shows the selected project in the thread, and asks only for the survey.
 - The typing box has a **Send** icon. **Create** sits outside the typing box and starts analysis after the user confirms.
-- The agent asks, in order: How many responses you want to collect; Which countries you want to field the survey in; Which survey you want to field; What will be the due date.
-- The user can type an answer or pick a suggested option (Claude-style). Response count options are **50, 100, 200, 500, 1000, 2000, 5000**. Countries use a multi-select dropdown. Due date offers suggested dates and a date picker.
+- When the agent asks for a missing detail, the user can type an answer or pick a suggested option (Claude-style). Response count options are **50, 100, 200, 500, 1000, 2000, 5000**. Countries use a multi-select dropdown. Due date offers suggested dates and a date picker.
 - A previous answer can be edited from that message before analysis starts. After the four answers, the agent shows the shared details, asks if the user wants to share anything else, and waits for confirmation (**No, that's all** or **Create**).
 - **Skip guided creation** sits directly below the chat box, above the recent project cards, and opens the traditional form at `/projects/create`.
 - After the four answers, analysis runs in the chat (Analyzing Survey, Matching Audience Criteria, Configuring Audience and Balancing, Checking Feasibility). A refresh resumes a run that is still in progress.

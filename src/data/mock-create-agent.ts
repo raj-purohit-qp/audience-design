@@ -5,7 +5,7 @@ import { MULTI_COUNTRY_CATALOG } from '@/data/mock-multi-country';
 export const GUIDED_RESPONSE_COUNTS = [50, 100, 200, 500, 1000, 2000, 5000] as const;
 
 export type GuidedField = 'responses' | 'country' | 'survey' | 'dueDate';
-export type GuidedStep = GuidedField | 'confirm' | 'working' | 'done';
+export type GuidedStep = GuidedField | 'intake' | 'confirm' | 'working' | 'done';
 
 export interface GuidedDraft {
   responses?: number;
@@ -20,8 +20,7 @@ export interface GuidedOption {
 }
 
 export const AGENT_COPY = {
-  greeting:
-    "Hi! I'm your research agent. I can help you set up this project. Answer the questions below, or share the details like required responses, country, survey and due date.",
+  greeting: "Hi! I'm your research agent. I can help you set up this project.",
   responses: 'How many responses do you want to collect?',
   country: 'Which countries do you want to field the survey in?',
   survey: 'Which survey do you want to field?',
@@ -34,6 +33,16 @@ export const AGENT_COPY = {
   recents:
     'Or start from a recent project. This fills responses, countries, and due date — you only select the survey.',
   unclear: "I didn't catch that. Choose one of the options, or try a different answer.",
+  needDetails: 'Please share the number of responses, country, due date, and the survey.',
+  composerIntake:
+    'Share your requirements like number of responses, country, due date and the survey.',
+};
+
+const MISSING_FIELD_LABELS: Record<GuidedField, string> = {
+  responses: 'the number of responses',
+  country: 'country',
+  survey: 'the survey',
+  dueDate: 'due date',
 };
 
 export interface RecentProjectTemplate {
@@ -135,12 +144,27 @@ export function guidedDueDateOptions(): GuidedOption[] {
   });
 }
 
+export function missingFields(draft: GuidedDraft): GuidedField[] {
+  const missing: GuidedField[] = [];
+  if (draft.responses == null) missing.push('responses');
+  if (!draft.countryCodes?.length) missing.push('country');
+  if (!draft.surveyId) missing.push('survey');
+  if (!draft.dueDate) missing.push('dueDate');
+  return missing;
+}
+
 export function remainingGuidedStep(draft: GuidedDraft): GuidedField | 'ready' {
-  if (draft.responses == null) return 'responses';
-  if (!draft.countryCodes?.length) return 'country';
-  if (!draft.surveyId) return 'survey';
-  if (!draft.dueDate) return 'dueDate';
-  return 'ready';
+  return missingFields(draft)[0] ?? 'ready';
+}
+
+export function requestMissingCopy(draft: GuidedDraft): string {
+  const missing = missingFields(draft);
+  if (missing.length === 0) return AGENT_COPY.confirm;
+  if (missing.length === 4) return AGENT_COPY.needDetails;
+  const labels = missing.map((field) => MISSING_FIELD_LABELS[field]);
+  if (labels.length === 1) return `Please share ${labels[0]}.`;
+  if (labels.length === 2) return `Please share ${labels[0]} and ${labels[1]}.`;
+  return `Please share ${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}.`;
 }
 
 export function questionForStep(step: GuidedField): string {

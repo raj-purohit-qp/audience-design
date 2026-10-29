@@ -37,6 +37,18 @@
   margin-bottom: 1.5rem;
 }
 
+.create-agent-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.create-agent-title .ir-ai-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #1b87e6;
+}
+
 .create-agent-card {
   display: flex;
   flex-direction: column;
