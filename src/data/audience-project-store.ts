@@ -200,6 +200,22 @@ export function buildAudienceProjectDetail(payload: CreateProjectPayload): Singl
 const STORAGE_PREFIX = 'audience-project:';
 const MULTI_STORAGE_PREFIX = 'multi-country-project:';
 const TOP_UP_NAME_SUFFIX = / Topup(\d+)$/;
+const TOP_UP_INDEX_IN_NAME = /Topup(\d+)/i;
+
+/** Chip label for a top-up child, e.g. Top-up1. */
+export function topUpChipLabel(name: string, isTopUp = false): string | null {
+  const match = name.match(TOP_UP_INDEX_IN_NAME);
+  if (match) return `Top-up${match[1]}`;
+  return isTopUp ? 'Top-up' : null;
+}
+
+/** Visible project title without the Topup1 suffix — that index is shown as a chip. */
+export function displayProjectName(name: string): string {
+  return name
+    .replace(/[ _-]?Topup\d+/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 
 export function listStoredAudienceProjects(): SingleCountryProjectDetail[] {
   if (typeof window === 'undefined') return [];

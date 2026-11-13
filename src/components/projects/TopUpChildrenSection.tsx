@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import type { TopUpChildRef } from '@/data/audience-project-store';
+import { displayProjectName, topUpChipLabel, type TopUpChildRef } from '@/data/audience-project-store';
 
 const WuCard = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCard })),
@@ -67,11 +67,14 @@ export function TopUpChildrenSection({ childrenProjects }: TopUpChildrenSectionP
             <li key={child.id} className="flex flex-wrap items-center gap-4 px-5 py-3.5">
               <div className="min-w-[11rem] flex-1">
                 <div className="flex flex-wrap items-center gap-2">
+                  <WuChip size="sm" shape="rounded" variant="secondary">
+                    {topUpChipLabel(child.name, true)}
+                  </WuChip>
                   <Link
                     href={`/projects/${child.id}`}
                     className="text-sm font-medium text-[rgb(var(--wu-blue-p))] hover:underline"
                   >
-                    {child.name}
+                    {displayProjectName(child.name)}
                   </Link>
                   <WuChip size="sm" shape="rounded" color={statusChipColor(child.status)}>
                     {child.status}

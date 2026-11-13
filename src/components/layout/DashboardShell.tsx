@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { SideNav } from '@/components/SideNav';
 import { HeaderBreadcrumb } from '@/components/layout/HeaderBreadcrumb';
-import { resolveAudienceProject } from '@/data/audience-project-store';
+import { displayProjectName, resolveAudienceProject } from '@/data/audience-project-store';
 import { useWorkspaceSession } from '@/components/workspace/useWorkspaceSession';
 import { getInitials } from '@/data/mock-workspace';
 
@@ -34,7 +34,7 @@ function useProjectDetailBreadcrumb(): string | null {
     }
 
     const project = resolveAudienceProject(match[1]);
-    setProjectName(project.name);
+    setProjectName(displayProjectName(project.name));
   }, [pathname]);
 
   if (pathname === '/projects/create' || pathname.startsWith('/projects/create/')) {

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { ChildCountryProject } from '@/data/mock-multi-country';
 import { getCountryByCode } from '@/data/mock-multi-country';
+import { displayProjectName, topUpChipLabel } from '@/data/audience-project-store';
 
 const WuCard = dynamic(
   () => import('@npm-questionpro/wick-ui-lib').then((m) => ({ default: m.WuCard })),
@@ -75,9 +76,14 @@ export function CountriesProgressSection({
             >
               <div className="min-w-[11rem] flex-1">
                 <div className="flex flex-wrap items-center gap-2">
+                  {child.id.includes('-topup-') ? (
+                    <WuChip size="sm" shape="rounded" variant="secondary">
+                      {topUpChipLabel(child.name, true)}
+                    </WuChip>
+                  ) : null}
                   <span className="text-sm font-medium text-[#1a2340]">
                     {country?.flag ? `${country.flag} ` : ''}
-                    {child.name}
+                    {displayProjectName(child.name)}
                   </span>
                   <WuChip size="sm" shape="rounded" color={statusChipColor(child.status)}>
                     {child.status}

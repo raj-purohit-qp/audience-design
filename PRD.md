@@ -324,7 +324,8 @@ Drawer sections, in order:
    - **Launch** creates a **Live** child top-up project under the original parent (same grouping pattern as multi-country). The original stays **Closed**. Parent required responses increase by the additional quantity.
 
 **Parent and children**
-- Specialized sample lists the original as an expandable parent. Child top-up rows indent underneath, like multi-country country rows.
+- Specialized sample lists the original as an expandable parent. Child top-up rows sit under the parent without extra indent — the **Top-up1** chip already occupies that space.
+- A **Top-up1** chip (then Top-up2, Top-up3, …) sits immediately to the left of the child project name on the list, the child detail header, and Top-up projects. The stored Topup1 suffix is not shown in the name.
 - Parent Overview shows **Top-up projects** with each child’s status and progress.
 - Parent Completes / required count includes the additional top-up responses (collected stays at the original closed count until children collect).
 

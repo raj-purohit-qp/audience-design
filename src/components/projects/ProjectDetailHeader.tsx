@@ -2,7 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import type { SingleCountryProjectDetail } from '@/data/audience-project-store';
+import {
+  displayProjectName,
+  topUpChipLabel,
+  type SingleCountryProjectDetail,
+} from '@/data/audience-project-store';
 import { detailPageGutter } from '@/components/ui/page-layout';
 import { ProjectHeaderAnalyticsActions } from '@/components/projects/ProjectHeaderAnalyticsActions';
 
@@ -59,6 +63,7 @@ export function ProjectDetailHeader({
 }: ProjectDetailHeaderProps) {
   const isDraft = project.status === 'Draft';
   const isLive = project.status === 'Live';
+  const topUpChip = topUpChipLabel(project.name, Boolean(project.topUpOfProjectId));
 
   const metaItems: { icon: string; text: string; href?: string }[] = isDraft
     ? [
@@ -70,7 +75,7 @@ export function ProjectDetailHeader({
         { icon: 'wm-tag', text: `# ${project.projectId}` },
         {
           icon: 'wm-open-in-new',
-          text: `Survey: ${project.name}`,
+          text: `Survey: ${displayProjectName(project.name)}`,
           href: '#',
         },
         { icon: 'wm-rocket-launch', text: `Launched ${project.launchDate ?? '—'}` },
@@ -101,7 +106,12 @@ export function ProjectDetailHeader({
       <div className={`${detailPageGutter} flex flex-wrap items-start justify-between gap-4 py-5`}>
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2.5">
-            <WuHeading size="lg">{project.name}</WuHeading>
+            {topUpChip ? (
+              <WuChip size="sm" shape="rounded" variant="secondary">
+                {topUpChip}
+              </WuChip>
+            ) : null}
+            <WuHeading size="lg">{displayProjectName(project.name)}</WuHeading>
             <WuChip size="sm" shape="rounded" color={statusChipColor(project.status)}>
               {project.status}
             </WuChip>

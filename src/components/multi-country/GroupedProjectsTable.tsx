@@ -33,6 +33,8 @@ import {
   listStoredAudienceProjects,
   nextTopUpProjectName,
   perCountryRequiredResponses,
+  displayProjectName,
+  topUpChipLabel,
   resolveAudienceProject,
   saveAudienceProject,
   saveMultiCountryProject,
@@ -119,6 +121,7 @@ interface ProjectRowMetrics {
   expanded?: boolean;
   onToggle?: () => void;
   countryCode?: string;
+  topUpChip?: string;
 }
 
 type PushTarget = {
@@ -279,7 +282,7 @@ function topUpChildToRow(child: TopUpChildRef): ProjectRowMetrics {
     actualCost: Number((child.collected * child.costPerInterview).toFixed(2)),
     totalCost: child.totalCost,
     sameCpiPushCount: 0,
-    indent: true,
+    topUpChip: topUpChipLabel(child.name, true) ?? undefined,
   };
 }
 
@@ -301,8 +304,11 @@ function childToRow(child: ChildProjectRow, parentId: string): ProjectRowMetrics
     actualCost: Number((child.collected * child.cpi).toFixed(2)),
     totalCost: child.totalCost,
     sameCpiPushCount: child.sameCpiPushCount,
-    indent: true,
+    indent: !child.id.includes('-topup-'),
     countryCode: child.countryCode,
+    topUpChip: child.id.includes('-topup-')
+      ? (topUpChipLabel(child.name, true) ?? undefined)
+      : undefined,
   };
 }
 
@@ -364,16 +370,27 @@ function ProjectTableRow({
           />
         </td>
         <td className={`px-3 py-3 ${row.indent ? 'pl-10' : ''}`}>
-          <Link
-            href={row.href}
-            className="font-medium text-[rgb(var(--wu-blue-p))] hover:text-[rgb(var(--wu-blue-pHover-deep))] hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {row.name}
-          </Link>
-          <span className="mt-0.5 block text-xs text-[#80868b]">
-            Project ID: {row.projectId}
-          </span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            {row.topUpChip ? (
+              <span className="shrink-0">
+                <WuChip size="sm" shape="rounded" variant="secondary">
+                  {row.topUpChip}
+                </WuChip>
+              </span>
+            ) : null}
+            <div className="min-w-0">
+              <Link
+                href={row.href}
+                className="block truncate font-medium text-[rgb(var(--wu-blue-p))] hover:text-[rgb(var(--wu-blue-pHover-deep))] hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {displayProjectName(row.name)}
+              </Link>
+              <span className="mt-0.5 block text-xs text-[#80868b]">
+                Project ID: {row.projectId}
+              </span>
+            </div>
+          </div>
         </td>
         <td className="px-3 py-3">
           <StatusCell status={row.status} onChange={onStatusChange} />
@@ -393,7 +410,10 @@ function ProjectTableRow({
         <td className="px-3 py-3 tabular-nums text-[#3c4043]">
           {formatCurrency(row.totalCost)}
         </td>
-        <td className="w-[6.75rem] px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+        <td
+          className="sticky right-10 z-[1] w-[6.75rem] bg-white px-2 py-3 text-right group-hover:bg-[#f8f9fa]"
+          onClick={(e) => e.stopPropagation()}
+        >
           {showPush ? (
             <div className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
               <WuButton
@@ -422,7 +442,10 @@ function ProjectTableRow({
             </div>
           ) : null}
         </td>
-        <td className="w-10 px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+        <td
+          className="sticky right-0 z-[1] w-10 bg-white px-2 py-3 text-center group-hover:bg-[#f8f9fa]"
+          onClick={(e) => e.stopPropagation()}
+        >
           {row.expandable ? (
             <button
               type="button"
@@ -1005,8 +1028,8 @@ export function GroupedProjectsTable() {
               <SortableHeader>Average CPI</SortableHeader>
               <SortableHeader>Actual Cost</SortableHeader>
               <SortableHeader>Total Cost</SortableHeader>
-              <th className={`w-[6.75rem] ${HEADER_CELL}`} aria-label="Actions" />
-              <th className={`w-10 ${HEADER_CELL}`} aria-label="Expand" />
+              <th className={`sticky right-10 z-[1] w-[6.75rem] bg-[#EEEEEE] ${HEADER_CELL}`} aria-label="Actions" />
+              <th className={`sticky right-0 z-[1] w-10 bg-[#EEEEEE] ${HEADER_CELL}`} aria-label="Expand" />
             </tr>
           </thead>
           <tbody>
